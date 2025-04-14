@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:travel_app/routes/app_routes.dart'; // ganti sesuai path kamu
+
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController emailController = TextEditingController();
+    final TextEditingController usernameController = TextEditingController();
     final TextEditingController passwordController = TextEditingController();
 
     return Scaffold(
@@ -35,9 +37,9 @@ class LoginPage extends StatelessWidget {
 
               // Email
               TextField(
-                controller: emailController,
+                controller: usernameController,
                 decoration: InputDecoration(
-                  hintText: "Email",
+                  hintText: "Username",
                   filled: true,
                   fillColor: Colors.grey.shade200,
                   border: OutlineInputBorder(
@@ -92,6 +94,14 @@ class LoginPage extends StatelessWidget {
                   ),
                   onPressed: () {
                     // TODO: Login logic
+                    final username =
+                        usernameController.text.trim().toLowerCase(); //
+                    if (username == 'admin') {
+                      Navigator.pushReplacementNamed(
+                          context, AppRoutes.adminTicket);
+                    } else {
+                      Navigator.pushReplacementNamed(context, AppRoutes.home);
+                    }
                   },
                   child: const Text(
                     "Login",
