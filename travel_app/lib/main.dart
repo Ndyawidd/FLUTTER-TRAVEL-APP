@@ -30,7 +30,11 @@ class MyApp extends StatelessWidget {
         AppRoutes.register: (_) => const RegisterPage(),
 
         // User pages
-        // AppRoutes.home: (context) => const HomePage(),
+        '/user/home': (context) => const HomePage(),
+        // '/destination/detail': (context) => DestinationDetailPage(
+        // name: '', location: '', imageUrl: '', price: 0, // Dummy untuk compiler
+
+        AppRoutes.homeUser: (context) => const HomePage(),
         // AppRoutes.booking: (context) => const BookingPage(),
         // AppRoutes.wishlist: (context) => const WishlistPage(),
         // AppRoutes.feedback: (context) => const FeedbackPage(),
