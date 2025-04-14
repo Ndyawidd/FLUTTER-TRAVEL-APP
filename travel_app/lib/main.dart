@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'routes/app_routes.dart';
-
-import 'presentation/pages/admin/review/review.dart';
-
 import 'presentation/pages/splash/splash.dart';
 import 'presentation/pages/auth/login_page.dart';
 import 'presentation/pages/auth/register_page.dart';
@@ -28,10 +25,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Travel App',
       debugShowCheckedModeBanner: false,
-      initialRoute: AppRoutes.adminReview, // Langsung ke halaman review
+      initialRoute: AppRoutes.splash,
       routes: {
-
-        AppRoutes.adminReview: (context) => const ReviewManagementPage(),
         // Splash & Auth
         AppRoutes.splash: (_) => const SplashPage(),
         AppRoutes.login: (_) => const LoginPage(),
@@ -49,7 +44,6 @@ class MyApp extends StatelessWidget {
         // AppRoutes.adminDetailTicket: (_) => const TicketDetailPage(),
         AppRoutes.adminOrder: (_) => const OrderPage(),
         // AppRoutes.adminReview: (_) => const ReviewPage(),
-
       },
     );
   }
