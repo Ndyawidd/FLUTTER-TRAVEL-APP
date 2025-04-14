@@ -3,12 +3,12 @@ class AppRoutes {
   static const login = '/login';
   static const register = '/register';
 
-  // User routes
-  static const home = '/home';
-  static const booking = '/booking';
-  static const wishlist = '/wishlist';
-  static const feedback = '/feedback';
-  static const profile = '/profile';
+  // User
+  static const homeUser = 'user/home';
+  static const booking = 'user/booking';
+  static const wishlist = 'user/wishlist';
+  static const feedback = 'user/feedback';
+  static const profile = 'user/profile';
 
   // Admin routes
   static const adminTicket = '/admin/ticket';

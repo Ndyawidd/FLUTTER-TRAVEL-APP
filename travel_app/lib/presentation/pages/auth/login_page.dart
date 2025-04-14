@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:travel_app/routes/app_routes.dart'; // ganti sesuai path kamu
 
-
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
@@ -100,7 +99,7 @@ class LoginPage extends StatelessWidget {
                       Navigator.pushReplacementNamed(
                           context, AppRoutes.adminTicket);
                     } else {
-                      Navigator.pushReplacementNamed(context, AppRoutes.home);
+                      Navigator.pushReplacementNamed(context, '/user/home');
                     }
                   },
                   child: const Text(
