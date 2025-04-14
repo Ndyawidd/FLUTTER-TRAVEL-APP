@@ -57,7 +57,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/
+    - assets/images/Labuhan_Bajo.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

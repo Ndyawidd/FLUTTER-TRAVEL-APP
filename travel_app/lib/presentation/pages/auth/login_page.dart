@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:travel_app/routes/app_routes.dart'; // ganti sesuai path kamu
 
-
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
@@ -93,26 +92,26 @@ class LoginPage extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    // TODO: Login logic
                     final username =
-                        usernameController.text.trim().toLowerCase(); //
+                        usernameController.text.trim().toLowerCase();
+
                     if (username == 'admin') {
-                      Navigator.pushReplacementNamed(
-                          context, AppRoutes.adminTicket);
+                      Navigator.pushReplacementNamed(context,
+                          AppRoutes.adminReview); // Arahkan ke halaman review
                     } else {
-                      Navigator.pushReplacementNamed(context, AppRoutes.home);
+                      Navigator.pushReplacementNamed(context,
+                          AppRoutes.home); // Arahkan ke halaman home biasa
                     }
                   },
                   child: const Text(
                     "Login",
                     style: TextStyle(
                       fontSize: 16,
-                      color: Color.fromARGB(255, 255, 255, 255),
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
 
               // Don't have an account?
               Center(
