@@ -32,18 +32,12 @@ class MyApp extends StatelessWidget {
         AppRoutes.login: (_) => const LoginPage(),
         AppRoutes.register: (_) => const RegisterPage(),
 
-
-        // User pages
-        '/user/home': (context) => const HomePage(),
-        // '/destination/detail': (context) => DestinationDetailPage(
-        // name: '', location: '', imageUrl: '', price: 0, // Dummy untuk compiler
-
-        AppRoutes.homeUser: (context) => const HomePage(),
-        // AppRoutes.booking: (context) => const BookingPage(),
-        // AppRoutes.wishlist: (context) => const WishlistPage(),
-        // AppRoutes.feedback: (context) => const FeedbackPage(),
-        // AppRoutes.profile: (context) => const ProfilePage(),
-
+        // User Pages (aktifkan jika sudah dibuat)
+        // AppRoutes.home: (_) => const HomePage(),
+        // AppRoutes.booking: (_) => const BookingPage(),
+        // AppRoutes.wishlist: (_) => const WishlistPage(),
+        // AppRoutes.feedback: (_) => const FeedbackPage(),
+        // AppRoutes.profile: (_) => const ProfilePage(),
 
         // Admin Pages
         AppRoutes.adminTicket: (_) => const TicketPage(),
