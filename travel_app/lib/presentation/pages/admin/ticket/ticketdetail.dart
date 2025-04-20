@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'edit_ticket.dart';
+// import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class TicketDetailPage extends StatelessWidget {
   final String title;
@@ -8,6 +8,8 @@ class TicketDetailPage extends StatelessWidget {
   final String image;
   final String time;
   final String description;
+  // final double latitude;  // Tambahkan koordinat
+  // final double longitude;
 
   const TicketDetailPage({
     super.key,
@@ -17,6 +19,8 @@ class TicketDetailPage extends StatelessWidget {
     required this.image,
     required this.time,
     required this.description,
+    // required this.latitude,
+    // required this.longitude,
   });
 
   @override
@@ -33,7 +37,7 @@ class TicketDetailPage extends StatelessWidget {
         ),
         elevation: 0,
         title: const Text(
-          'Detail Ticket',
+          'Ticket Details',
           style: TextStyle(
             color: Color(0xFF1450A3),
             fontWeight: FontWeight.bold,
@@ -41,135 +45,79 @@ class TicketDetailPage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.asset(
-                image,
-                width: 200,
-                height: 120,
-                fit: BoxFit.cover,
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  image,
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            infoText("Name", title),
-            infoText("Capacity", quota),
-            infoText("Price", price),
-            infoText("Operational Time", time),
-            infoText("Description", description),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFFFA500),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onPressed: () async {
-  final result = await Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => EditTicketPage(
-        title: title,
-        quota: quota,
-        price: price,
-        time: time,
-        description: description,
-        image: image,
-      ),
-    ),
-  );
-
-  if (result != null) {
-    // Update state atau show snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Ticket updated successfully')),
-    );
-  }
-},
-
-                    child: const Text("Edit Ticket"),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1450A3),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onPressed: () {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text("Delete Ticket"),
-      content: const Text("Are you sure you want to delete this ticket?"),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel"),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            // Di sini bisa hapus dari database/list
-            Navigator.pop(context); // tutup dialog
-            Navigator.pop(context); // kembali ke halaman sebelumnya
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Ticket deleted")),
-            );
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          child: const Text("Delete"),
-        ),
-      ],
-    ),
-  );
-},
-
-                    child: const Text("Delete Ticket", style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-              ],
-            ),
+            const SizedBox(height: 24),
+            buildInfoItem("Name", title),
+            buildInfoItem("Capacity", quota),
+            buildInfoItem("Price", price),
+            buildInfoItem("Operational Time", time),
+            buildInfoItem("Description", description),
+            // const SizedBox(height: 24),
+            // Container(
+            //   height: 250,
+            //   decoration: BoxDecoration(
+            //     borderRadius: BorderRadius.circular(16),
+            //     border: Border.all(color: Color(0xFF1450A3)),
+            //   ),
+            //   child: ClipRRect(
+            //     borderRadius: BorderRadius.circular(16),
+            //     child: GoogleMap(
+            //       initialCameraPosition: _initialPosition,
+            //       markers: {
+            //         Marker(
+            //           markerId: const MarkerId('destination'),
+            //           position: LatLng(latitude, longitude),
+            //           infoWindow: InfoWindow(title: title),
+            //         ),
+            //       },
+            //       zoomControlsEnabled: false,
+            //     ),
+            //   ),
+            // ),
           ],
         ),
       ),
     );
   }
 
-  Widget infoText(String label, String value) {
+  Widget buildInfoItem(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: '$label\n',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1450A3),
-              ),
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF1450A3),
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
-            TextSpan(
-              text: value,
-              style: const TextStyle(color: Colors.black),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontSize: 14,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

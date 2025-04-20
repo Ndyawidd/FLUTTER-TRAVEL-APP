@@ -6,7 +6,7 @@ class DestinationCard extends StatelessWidget {
   final String price;
   final double rating;
   final String imageUrl;
-  final VoidCallback? onTap; // tambahkan ini
+  final VoidCallback? onTap; // Added onTap for gesture
 
   const DestinationCard({
     super.key,
@@ -15,13 +15,13 @@ class DestinationCard extends StatelessWidget {
     required this.price,
     required this.rating,
     required this.imageUrl,
-    this.onTap, // tambahkan ini
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap, // pasang di GestureDetector
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -31,27 +31,53 @@ class DestinationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Image at the top of the card
             ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Image.network(imageUrl,
-                  height: 120, width: double.infinity, fit: BoxFit.cover),
+              child: Image.network(
+                imageUrl,
+                height: 120, // Fixed height for image
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text(location, style: const TextStyle(color: Colors.grey)),
+                  // Title with ellipsis to prevent overflow
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis, // Avoid overflow
+                  ),
+                  // Location with ellipsis if it's too long
+                  Text(
+                    location,
+                    style: const TextStyle(color: Colors.grey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
-                  Text(price, style: const TextStyle(color: Colors.orange)),
+                  // Price with styling
+                  Text(
+                    price,
+                    style: const TextStyle(color: Colors.orange),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Rating with star icon
                   Row(
                     children: [
                       const Icon(Icons.star, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
-                      Text(rating.toString()),
+                      Text(
+                        rating.toString(),
+                        style: const TextStyle(fontSize: 14),
+                      ),
                     ],
                   ),
                 ],
