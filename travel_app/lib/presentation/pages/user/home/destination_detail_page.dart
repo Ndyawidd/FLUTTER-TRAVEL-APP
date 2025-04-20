@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'booking_page.dart';
+import 'map_page.dart';
 
 class DestinationDetailPage extends StatelessWidget {
   final String title;
@@ -7,6 +9,8 @@ class DestinationDetailPage extends StatelessWidget {
   final String price;
   final double rating;
   final String imageUrl;
+  final String details;
+  final LatLng locLang;
 
   const DestinationDetailPage({
     super.key,
@@ -15,6 +19,8 @@ class DestinationDetailPage extends StatelessWidget {
     required this.price,
     required this.rating,
     required this.imageUrl,
+    required this.details,
+    required this.locLang,
   });
 
   @override
@@ -25,6 +31,7 @@ class DestinationDetailPage extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -68,21 +75,17 @@ class DestinationDetailPage extends StatelessWidget {
 
             // Info box
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.grey.shade100,
+                color: Color(0xFFE7F1F6),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Column(children: const [
-                    Icon(Icons.calendar_today),
-                    Text("Open\nEveryday", textAlign: TextAlign.center)
-                  ]),
                   Column(children: [
                     const Icon(Icons.star),
-                    Text("$rating\nreviews", textAlign: TextAlign.center)
+                    Text("$rating\nReviews", textAlign: TextAlign.center)
                   ]),
                   Column(children: const [
                     Icon(Icons.favorite),
@@ -93,9 +96,10 @@ class DestinationDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
-            const Text(
-              "Ragunan Zoological Park...",
-              style: TextStyle(fontSize: 14, color: Colors.black87),
+            // Display detailed information about the destination
+            Text(
+              details, // Display the detailed string here
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
 
             const SizedBox(height: 16),
@@ -109,7 +113,7 @@ class DestinationDetailPage extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.yellow.shade100,
+                      color: Color(0xFFE7F1F6),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Column(
@@ -126,7 +130,7 @@ class DestinationDetailPage extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade100,
+                      color: Color(0xFFE7F1F6),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Column(
@@ -146,7 +150,25 @@ class DestinationDetailPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MapPage(
+                            locLang:
+                                locLang, // Pass the LatLng coordinates to the MapPage
+                          ),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(
+                          color: Color(0xFF1F509A), width: 2.0), // Border color
+                      backgroundColor:
+                          Colors.white, // Background color of the button
+                      foregroundColor:
+                          Color(0xFF1F509A), // Text color (for Map button)
+                    ),
                     child: const Text("Map"),
                   ),
                 ),
@@ -157,13 +179,20 @@ class DestinationDetailPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const BookingPage(
-                            destination: "Taman Margasatwa",
-                            date: "Wednesday, 28 March 2025",
+                          builder: (context) => BookingPage(
+                            destination:
+                                title, // Pass only the destination title
+                            date: "", // You can leave the date empty initially
                           ),
                         ),
                       );
                     },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Color(0xFF1F509A), // Background color of the button
+                      foregroundColor:
+                          Colors.white, // Text color (for Book Ticket button)
+                    ),
                     child: const Text("Book Ticket"),
                   ),
                 ),
