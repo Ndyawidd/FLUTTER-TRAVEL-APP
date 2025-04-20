@@ -99,7 +99,10 @@ class OrderDetailPage extends StatelessWidget {
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               ),
-              child: const Text('Confirm Order'),
+              child: const Text(
+    'Confirm Order',
+    style: TextStyle(color: Colors.white), // ✅ warna teks putih
+  ),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -109,7 +112,10 @@ class OrderDetailPage extends StatelessWidget {
                 minimumSize: const Size(double.infinity, 48),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               ),
-              child: const Text('Cancel Order'),
+              child: const Text(
+    'Cancel Order',
+    style: TextStyle(color: Colors.white), // ✅ warna teks putih
+  ),
             ),
           ],
         ),

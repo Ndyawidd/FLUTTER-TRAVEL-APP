@@ -8,7 +8,7 @@ import 'presentation/pages/user/home/home.dart';
 // import 'presentation/pages/wishlist/wishlist.dart';
 // import 'presentation/pages/feedback/feedback.dart';
 import 'presentation/pages/admin/order/order.dart';
-// import 'presentation/pages/admin/review/review.dart';
+import 'presentation/pages/admin/review/review.dart';
 import 'presentation/pages/admin/ticket/ticket.dart';
 // import 'presentation/pages/admin/ticket/ticketdetail.dart';
 
@@ -47,6 +47,7 @@ class MyApp extends StatelessWidget {
         // AppRoutes.adminDetailTicket: (_) => const TicketDetailPage(),
         AppRoutes.adminOrder: (_) => const OrderPage(),
         // AppRoutes.adminReview: (_) => const ReviewPage(),
+        AppRoutes.adminReview: (_) => const ReviewManagementPage(),
       },
     );
   }
