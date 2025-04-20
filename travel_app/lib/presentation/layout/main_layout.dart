@@ -13,9 +13,9 @@ class _MainLayoutState extends State<MainLayout> {
   int currentIndex = 0;
 
   final pages = [
-    Text('Home'), // ganti dengan HomePage()
+    Text('Home'),
     Text('Wishlist'),
-    Text('Profile'), // bisa jadi nanti untuk logout dsb
+    Text('Profile'),
   ];
 
   @override
@@ -26,7 +26,8 @@ class _MainLayoutState extends State<MainLayout> {
         currentIndex: currentIndex,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Wishlist'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.favorite), label: 'Wishlist'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         onTap: (index) {
