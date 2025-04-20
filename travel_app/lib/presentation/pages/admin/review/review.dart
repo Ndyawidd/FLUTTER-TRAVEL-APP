@@ -21,7 +21,7 @@ class _ReviewManagementPageState extends State<ReviewManagementPage> {
           'Labuan Bajo keren banget! Lautnya jernih, pemandangannya cakep parah, nggak nyesel ke sini!',
       'reply': '',
       'profileUrl': 'https://i.pravatar.cc/150?img=3',
-      'imageUrl': 'assets/images/Labuhan_Bajo.jpg', // ✅ pakai asset
+      'imageUrl': 'assets/images/labuanbajo.jpg', // ✅ pakai asset
     },
     {
       'user': 'Nadya Widya Astuti',
@@ -33,7 +33,7 @@ class _ReviewManagementPageState extends State<ReviewManagementPage> {
       'reply':
           'Wah, terima kasih atas sarannya dan kapan-kapan datang lagi ya!',
       'profileUrl': 'https://i.pravatar.cc/150?img=4',
-      'imageUrl': 'assets/images/Labuhan_Bajo.jpg', // ✅ pakai asset
+      'imageUrl': 'assets/images/labuanbajo.jpg', // ✅ pakai asset
     },
   ];
 
@@ -103,8 +103,7 @@ class _ReviewManagementPageState extends State<ReviewManagementPage> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundImage:
-                      const AssetImage('assets/images/Labuhan_Bajo.jpg'),
+                  backgroundImage: NetworkImage(review['profileUrl']),
                   radius: 24,
                 ),
                 const SizedBox(width: 12),
@@ -145,7 +144,7 @@ class _ReviewManagementPageState extends State<ReviewManagementPage> {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
-                review['imageUrl'],
+                review['imageUrl'] as String,
                 height: 160,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -191,11 +190,11 @@ class _ReviewManagementPageState extends State<ReviewManagementPage> {
         backgroundColor: const Color(0xFF1450A3),
         selectedItemColor: const Color(0xFFFFA500),
         unselectedItemColor: Colors.white,
-        currentIndex: 1,
+        currentIndex: 2,
         onTap: (index) {
           if (index == 0) {
             Navigator.pushNamed(context, '/admin/ticket');
-          } else if (index == 2) {
+          } else if (index == 1) {
             Navigator.pushNamed(context, '/admin/order');
           }
         },

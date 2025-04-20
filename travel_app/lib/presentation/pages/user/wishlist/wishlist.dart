@@ -1,3 +1,4 @@
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/wishlist_card.dart';
 import 'package:travel_app/presentation/pages/user/home/destination_detail_page.dart';
@@ -15,20 +16,26 @@ class WishlistPage extends StatefulWidget {
 }
 
 class _WishlistPageState extends State<WishlistPage> {
-  List<Map<String, String>> wishlistItems = [
+  List<Map<String, dynamic>> wishlistItems = [
     {
       "imageUrl":
           "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
       "title": "Taman Margasatwa",
       "location": "Jakarta Selatan, Indonesia",
-      "price": "Rp. 250.000"
+      "price": "Rp. 250.000",
+      "rating": 4.5,
+      "details": "Taman dengan berbagai satwa liar dan atraksi edukatif.",
+      "locLang": LatLng(-6.313800, 106.813400),
     },
     {
       "imageUrl":
           "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
       "title": "Taman Hutan Raya",
       "location": "Bandung, Indonesia",
-      "price": "Rp. 150.000"
+      "price": "Rp. 150.000",
+      "rating": 4.2,
+      "details": "Hutan lindung dengan keanekaragaman hayati yang tinggi.",
+      "locLang": LatLng(-6.313800, 106.813400),
     },
   ];
 
@@ -48,26 +55,22 @@ class _WishlistPageState extends State<WishlistPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Center(
-  child: Text(
-    "Wishlist",
-    style: TextStyle(
-      fontSize: 24,
-      fontWeight: FontWeight.bold,
-      color: kPrimaryBlue,
-    ),
-  ),
+                  Center(
+                    child: Text(
+                      "Wishlist",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: kPrimaryBlue,
+                      ),
+                    ),
                   ),
-                ]
+                ],
               ),
-                                 
-
               const SizedBox(height: 16),
-
-              // ✅ Search Bar
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -91,8 +94,6 @@ class _WishlistPageState extends State<WishlistPage> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // ✅ Wishlist Items
               Expanded(
                 child: wishlistItems.isEmpty
                     ? const Center(child: Text("No wishlist items"))
@@ -112,11 +113,13 @@ class _WishlistPageState extends State<WishlistPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => DestinationDetailPage(
-                                    title: item["title"]!,
-                                    location: item["location"]!,
-                                    price: item["price"]!,
-                                    rating: 4.5,
-                                    imageUrl: item["imageUrl"]!,
+                                    title: item['title'],
+                                    location: item['location'],
+                                    price: item['price'],
+                                    rating: item['rating'],
+                                    imageUrl: item['imageUrl'],
+                                    details: item['details'],
+                                    locLang: item['locLang'],
                                   ),
                                 ),
                               );
