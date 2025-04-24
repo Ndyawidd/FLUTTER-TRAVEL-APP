@@ -39,9 +39,16 @@ class DestinationDetailPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Gambar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(imageUrl),
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  imageUrl,
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
 

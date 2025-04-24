@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'HistoryDetailPage.dart';
+import '../../../widgets/search_bar.dart';
+
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 
@@ -9,7 +11,7 @@ class HistoryPage extends StatelessWidget {
       "place": "Labuan Bajo",
       'image': 'assets/images/labuanbajo.jpg',
       "location": "Bandung, Indonesia",
-      "status": "Payment Successful",
+      "status": "Successful",
       "statusColor": Colors.green,
     },
     {
@@ -17,7 +19,7 @@ class HistoryPage extends StatelessWidget {
       "place": "Bali",
       'image': 'assets/images/labuanbajo.jpg',
       "location": "Denpasar, Indonesia",
-      "status": "Waiting Payment",
+      "status": "Waiting ",
       "statusColor": Colors.orange,
     },
     {
@@ -25,7 +27,7 @@ class HistoryPage extends StatelessWidget {
       "place": "Yogyakarta",
       'image': 'assets/images/labuanbajo.jpg',
       "location": "Yogyakarta, Indonesia",
-      "status": "Payment Cancelled",
+      "status": "Cancelled",
       "statusColor": Colors.red,
     },
   ];
@@ -34,39 +36,21 @@ class HistoryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               "History",
-              style: TextStyle(fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF1450A3),),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1450A3),
+              ),
             ),
             const SizedBox(height: 16),
             // Search Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.blue),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.search, color: Colors.blue, size: 30),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search history",
-                        border: InputBorder.none,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const SearchBarWidget(),
             const SizedBox(height: 16),
             // History Cards
             Expanded(

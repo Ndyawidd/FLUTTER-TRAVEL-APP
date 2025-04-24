@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
+import 'top_up.dart';
 
 class PaymentPage extends StatelessWidget {
   final String destination;
@@ -109,13 +110,23 @@ class PaymentPage extends StatelessWidget {
                             style: const TextStyle(fontSize: 16),
                           ),
                           TextButton(
-                            onPressed: () {
-                              // Implement Top Up functionality
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const TopUpPage()),
+                              );
+                              if (result != null && context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(result.toString()),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              }
                             },
-                            child: const Text(
-                              "Top Up",
-                              style: TextStyle(color: Colors.orange),
-                            ),
+                            child: const Text("Top Up",
+                                style: TextStyle(color: Colors.orange)),
                           ),
                         ],
                       ),
@@ -154,19 +165,16 @@ class PaymentPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(24)),
                     ),
                     onPressed: () {
-                      // Show Payment Success Notification
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Payment Successful!'),
                           backgroundColor: Colors.green,
                         ),
                       );
-                      // Navigate to HomePage after payment success
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                            builder: (context) =>
-                                const HomePage()), // Navigate to your actual HomePage
+                            builder: (context) => const HomePage()),
                       );
                     },
                     child: const Text("Pay Now",
@@ -181,7 +189,6 @@ class PaymentPage extends StatelessWidget {
     );
   }
 
-  // Build row with text and icon for Destination, Date, and other sections
   Widget buildRowWithIcon(String title, String value, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),

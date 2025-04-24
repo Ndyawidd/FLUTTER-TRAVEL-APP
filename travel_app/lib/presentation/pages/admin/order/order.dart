@@ -22,16 +22,16 @@ class _OrderPageState extends State<OrderPage> {
     },
     {
       'name': 'Nadya Widdy Astuti',
-      'title': 'Bali',
-      'image': 'assets/images/labuanbajo.jpg',
+      'title': 'Karimun Jawa',
+      'image': 'assets/images/karimunjawa.jpg',
       'price': 700000,
       'quantity': 1,
       'status': 'In Progress',
     },
     {
       'name': 'Nadya Widdy Astuti',
-      'title': 'Raja Ampat',
-      'image': 'assets/images/labuanbajo.jpg',
+      'title': 'Curug Pelangi',
+      'image': 'assets/images/curugpelangi.jpg',
       'price': 800000,
       'quantity': 3,
       'status': 'Done',
@@ -74,16 +74,19 @@ class _OrderPageState extends State<OrderPage> {
               const SizedBox(height: 16),
               SizedBox(
                 height: 40,
-                child: Row(
-                  children: [
-                    buildFilterButton('ALL'),
-                    const SizedBox(width: 8),
-                    buildFilterButton('Pending'),
-                    const SizedBox(width: 8),
-                    buildFilterButton('In Progress', isWide: true),
-                    const SizedBox(width: 8),
-                    buildFilterButton('Done'),
-                  ],
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      buildFilterButton('ALL'),
+                      const SizedBox(width: 8),
+                      buildFilterButton('Pending'),
+                      const SizedBox(width: 8),
+                      buildFilterButton('In Progress', isWide: true),
+                      const SizedBox(width: 8),
+                      buildFilterButton('Done'),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -125,7 +128,8 @@ class _OrderPageState extends State<OrderPage> {
                             Row(
                               children: [
                                 CircleAvatar(
-  backgroundImage: NetworkImage('https://i.pravatar.cc/150?img=12'),
+                                  backgroundImage: NetworkImage(
+                                      'https://i.pravatar.cc/150?img=12'),
                                   radius: 20,
                                 ),
                                 const SizedBox(width: 12),
@@ -160,7 +164,8 @@ class _OrderPageState extends State<OrderPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         order['title'] as String,
@@ -189,14 +194,16 @@ class _OrderPageState extends State<OrderPage> {
                                   onPressed: () {},
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.orange,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
                                   ),
                                   child: const Text(
                                     'Confirm',
-                                    style: TextStyle(color: Colors.white), // ✅ warna teks putih
+                                    style: TextStyle(
+                                        color:
+                                            Colors.white), // ✅ warna teks putih
                                   ),
                                 ),
-
                               ],
                             ),
                           ],
@@ -253,8 +260,7 @@ class _OrderPageState extends State<OrderPage> {
           });
         },
         style: OutlinedButton.styleFrom(
-          backgroundColor:
-              isActive ? const Color(0xFF1450A3) : Colors.white,
+          backgroundColor: isActive ? const Color(0xFF1450A3) : Colors.white,
           side: const BorderSide(color: Color(0xFF1450A3)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),

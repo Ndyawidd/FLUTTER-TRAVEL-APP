@@ -2,6 +2,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/material.dart';
 import '../../../widgets/wishlist_card.dart';
 import 'package:travel_app/presentation/pages/user/home/destination_detail_page.dart';
+import '../../../widgets/search_bar.dart';
 
 const kPrimaryBlue = Color(0xFF154BCB);
 const kSecondaryOrange = Color(0xFFFF8500);
@@ -18,23 +19,22 @@ class WishlistPage extends StatefulWidget {
 class _WishlistPageState extends State<WishlistPage> {
   List<Map<String, dynamic>> wishlistItems = [
     {
-      "imageUrl":
-          "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
-      "title": "Taman Margasatwa",
-      "location": "Jakarta Selatan, Indonesia",
-      "price": "Rp. 250.000",
+      "imageUrl": "assets/images/labuanbajo.jpg",
+      "title": "Labuan Bajo",
+      "location": "Labuan Bajo, Indonesia",
+      "price": "Rp. 500.000",
       "rating": 4.5,
-      "details": "Taman dengan berbagai satwa liar dan atraksi edukatif.",
+      "details":
+          "Liburan ke Laboan Bajo dengan fasilitas lengkap dan pemandangan indah.",
       "locLang": LatLng(-6.313800, 106.813400),
     },
     {
-      "imageUrl":
-          "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
-      "title": "Taman Hutan Raya",
-      "location": "Bandung, Indonesia",
-      "price": "Rp. 150.000",
+      "imageUrl": "assets/images/karimunjawa.jpg",
+      "title": "Karimun Jawa",
+      "location": "Karimun Jawa, Indonesia",
+      "price": "Rp. 750.000",
       "rating": 4.2,
-      "details": "Hutan lindung dengan keanekaragaman hayati yang tinggi.",
+      "details": "Menjelajah pulau Karimun Jawa yang eksotis dan tenang.",
       "locLang": LatLng(-6.313800, 106.813400),
     },
   ];
@@ -71,28 +71,7 @@ class _WishlistPageState extends State<WishlistPage> {
                 ],
               ),
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: kBorderColor),
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.search, color: Colors.grey),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: "Search wishlist",
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const SearchBarWidget(),
               const SizedBox(height: 16),
               Expanded(
                 child: wishlistItems.isEmpty

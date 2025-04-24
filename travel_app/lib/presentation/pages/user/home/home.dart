@@ -18,12 +18,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // Daftar halaman yang akan ditampilkan sesuai indeks navbar
   final List<Widget> _pages = [
-    const HomeContent(), // halaman home
-    const WishlistPage(), // halaman wishlist
-    const HistoryPage(), // halaman history
-    const ProfilePage(), // halaman profile
+    const HomeContent(),
+    const WishlistPage(),
+    const HistoryPage(),
+    const ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
@@ -37,10 +36,11 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
-        selectedItemColor: Color(0xFFE38E49),
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Color(0xFF1F509A),
+        selectedItemColor: const Color(0xFFFFA500),
+        unselectedItemColor: Colors.white,
+        backgroundColor: const Color(0xFF1450A3),
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
@@ -62,80 +62,73 @@ class HomeContent extends StatelessWidget {
     // List of destinations with their details
     final List<Map<String, dynamic>> destinations = [
       {
-        "title": "Ragunan Zoo",
+        "title": "Labuan Bajo",
         "location": "Jakarta Selatan, Indonesia",
         "price": "Rp 250.000",
         "rating": 4.5,
-        "imageUrl":
-            "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
+        "imageUrl": 'assets/images/labuanbajo.jpg',
         "details":
-            "Ragunan Zoological Park is a large zoo in Jakarta featuring various animal species, including mammals, reptiles, and birds. It’s a great place for family visits and educational purposes.",
+            "Labuan Bajo is a fishing town located at the western end of the large island of Flores in the East Nusa Tenggara province of Indonesia. It is in Komodo District. It is the capital of the West Manggarai Regency, one of the eight regencies on Flores Island.",
         "locLang": LatLng(-6.313800, 106.813400),
       },
       {
-        "title": "Ragunan Zoo",
+        "title": "Labuan Bajo",
         "location": "Jakarta Selatan, Indonesia",
         "price": "Rp 250.000",
         "rating": 4.5,
-        "imageUrl":
-            "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
+        "imageUrl": 'assets/images/labuanbajo.jpg',
         "details":
-            "Ragunan Zoological Park is a large zoo in Jakarta featuring various animal species, including mammals, reptiles, and birds. It’s a great place for family visits and educational purposes.",
+            "Labuan Bajo is a fishing town located at the western end of the large island of Flores in the East Nusa Tenggara province of Indonesia. It is in Komodo District. It is the capital of the West Manggarai Regency, one of the eight regencies on Flores Island.",
         "locLang": LatLng(-6.313800, 106.813400),
       },
       {
-        "title": "Ragunan Zoo",
+        "title": "Labuan Bajo",
         "location": "Jakarta Selatan, Indonesia",
         "price": "Rp 250.000",
         "rating": 4.5,
-        "imageUrl":
-            "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
+        "imageUrl": 'assets/images/labuanbajo.jpg',
         "details":
-            "Ragunan Zoological Park is a large zoo in Jakarta featuring various animal species, including mammals, reptiles, and birds. It’s a great place for family visits and educational purposes.",
+            "Labuan Bajo is a fishing town located at the western end of the large island of Flores in the East Nusa Tenggara province of Indonesia. It is in Komodo District. It is the capital of the West Manggarai Regency, one of the eight regencies on Flores Island.",
         "locLang": LatLng(-6.313800, 106.813400),
       },
       {
-        "title": "Ragunan Zoo",
+        "title": "Labuan Bajo",
         "location": "Jakarta Selatan, Indonesia",
         "price": "Rp 250.000",
         "rating": 4.5,
-        "imageUrl":
-            "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
+        "imageUrl": 'assets/images/labuanbajo.jpg',
         "details":
-            "Ragunan Zoological Park is a large zoo in Jakarta featuring various animal species, including mammals, reptiles, and birds. It’s a great place for family visits and educational purposes.",
+            "Labuan Bajo is a fishing town located at the western end of the large island of Flores in the East Nusa Tenggara province of Indonesia. It is in Komodo District. It is the capital of the West Manggarai Regency, one of the eight regencies on Flores Island.",
         "locLang": LatLng(-6.313800, 106.813400),
       },
       {
-        "title": "Ragunan Zoo",
+        "title": "Labuan Bajo",
         "location": "Jakarta Selatan, Indonesia",
         "price": "Rp 250.000",
         "rating": 4.5,
-        "imageUrl":
-            "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
+        "imageUrl": 'assets/images/labuanbajo.jpg',
         "details":
-            "Ragunan Zoological Park is a large zoo in Jakarta featuring various animal species, including mammals, reptiles, and birds. It’s a great place for family visits and educational purposes.",
+            "Labuan Bajo is a fishing town located at the western end of the large island of Flores in the East Nusa Tenggara province of Indonesia. It is in Komodo District. It is the capital of the West Manggarai Regency, one of the eight regencies on Flores Island.",
         "locLang": LatLng(-6.313800, 106.813400),
       },
       {
-        "title": "Ragunan Zoo",
+        "title": "Labuan Bajo",
         "location": "Jakarta Selatan, Indonesia",
         "price": "Rp 250.000",
         "rating": 4.5,
-        "imageUrl":
-            "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
+        "imageUrl": 'assets/images/labuanbajo.jpg',
         "details":
-            "Ragunan Zoological Park is a large zoo in Jakarta featuring various animal species, including mammals, reptiles, and birds. It’s a great place for family visits and educational purposes.",
+            "Labuan Bajo is a fishing town located at the western end of the large island of Flores in the East Nusa Tenggara province of Indonesia. It is in Komodo District. It is the capital of the West Manggarai Regency, one of the eight regencies on Flores Island.",
         "locLang": LatLng(-6.313800, 106.813400),
       },
       {
-        "title": "Ragunan Zoo",
+        "title": "Labuan Bajo",
         "location": "Jakarta Selatan, Indonesia",
         "price": "Rp 250.000",
         "rating": 4.5,
-        "imageUrl":
-            "https://www.mongabay.co.id/wp-content/uploads/2022/04/iwan-dento-02-768x512.jpeg",
+        "imageUrl": 'assets/images/labuanbajo.jpg',
         "details":
-            "Ragunan Zoological Park is a large zoo in Jakarta featuring various animal species, including mammals, reptiles, and birds. It’s a great place for family visits and educational purposes.",
+            "Labuan Bajo is a fishing town located at the western end of the large island of Flores in the East Nusa Tenggara province of Indonesia. It is in Komodo District. It is the capital of the West Manggarai Regency, one of the eight regencies on Flores Island.",
         "locLang": LatLng(-6.313800, 106.813400),
       },
     ];
@@ -155,8 +148,7 @@ class HomeContent extends StatelessWidget {
             const SizedBox(height: 12),
             Expanded(
               child: GridView.builder(
-                itemCount:
-                    destinations.length, // Use the length of destinations list
+                itemCount: destinations.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
@@ -164,8 +156,7 @@ class HomeContent extends StatelessWidget {
                   childAspectRatio: 0.72,
                 ),
                 itemBuilder: (context, index) {
-                  var destination = destinations[
-                      index]; // Get the specific destination details
+                  var destination = destinations[index];
                   return GestureDetector(
                     onTap: () {
                       Navigator.push(

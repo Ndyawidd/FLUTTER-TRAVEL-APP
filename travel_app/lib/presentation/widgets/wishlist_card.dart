@@ -37,7 +37,7 @@ class WishlistCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
+              child: Image.asset(
                 imageUrl,
                 width: 80,
                 height: 80,
@@ -56,8 +56,7 @@ class WishlistCard extends StatelessWidget {
                           color: kSecondaryOrange)),
                   const SizedBox(height: 4),
                   Text(location,
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.grey)),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 8),
                   Text(price,
                       style: const TextStyle(

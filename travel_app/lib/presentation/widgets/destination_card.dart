@@ -35,7 +35,7 @@ class DestinationCard extends StatelessWidget {
             ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Image.network(
+              child: Image.asset(
                 imageUrl,
                 height: 120, // Fixed height for image
                 width: double.infinity,
