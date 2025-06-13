@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:travel_app/presentation/pages/auth/login_page.dart';
 import '../home/top_up.dart';
+import '../../../../services/auth_service.dart'; // pastikan path sesuai
 
 const kPrimaryBlue = Color(0xFF154BCB);
 const kSecondaryOrange = Color(0xFFFF8500);
@@ -15,10 +17,48 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  double balance = 500000.0;
-  final String username = "Nadya Widdy Astuti";
-  final String email = "ndyawidd@email.com";
-  final String profileImage = "https://i.pravatar.cc/150?img=3";
+  String username = '';
+  String email = '';
+  String profileImage = '';
+  double balance = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserData(); // ✅ ganti ini, jangan _loadUserData lagi
+  }
+
+  Future<void> fetchUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('userId');
+
+    if (userId == null) return;
+
+    final user = await getUserById(userId);
+
+    if (user != null) {
+      setState(() {
+        username = user['name'] ?? 'No Name';
+        email = user['email'] ?? 'No Email';
+        balance = (user['balance'] ?? 0).toDouble();
+        profileImage = user['image']?.isNotEmpty == true
+            ? user['image']
+            : 'https://i.pravatar.cc/150?img=3';
+      });
+    }
+  }
+
+  void _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (context.mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +69,6 @@ class _ProfilePageState extends State<ProfilePage> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // Title
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -42,8 +81,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Foto Profil
               Center(
                 child: Container(
                   width: 100,
@@ -67,10 +104,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              // Info Akun
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -84,11 +118,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     const Text("Username",
                         style: TextStyle(
-                            color: Colors.grey, fontWeight: FontWeight.w500)),
+                            color: Color.fromARGB(255, 0, 0, 0),
+                            fontWeight: FontWeight.w500)),
                     const SizedBox(height: 4),
                     Text(username,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
+                            color: Color.fromARGB(255, 0, 0, 0),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16)),
                     const SizedBox(height: 16),
                     const Text("Email",
                         style: TextStyle(
@@ -100,10 +137,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // Kartu Saldo
               Container(
                 width: double.infinity,
                 padding:
@@ -147,6 +181,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             setState(() {
                               balance += result;
                             });
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setDouble('balance', balance);
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -163,10 +199,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                 ),
               ),
-
               const Spacer(),
-
-              // Tombol Logout
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -176,14 +209,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const LoginPage()),
-                      (route) => false,
-                    );
-                  },
+                  onPressed: _logout,
                   icon: const Icon(Icons.logout, color: Colors.white),
                   label: const Text("Keluar",
                       style: TextStyle(color: Colors.white, fontSize: 16)),

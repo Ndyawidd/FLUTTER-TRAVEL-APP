@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../services/order_service.dart';
 import 'orderdetail.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class OrderPage extends StatefulWidget {
   const OrderPage({super.key});
@@ -11,39 +13,8 @@ class OrderPage extends StatefulWidget {
 class _OrderPageState extends State<OrderPage> {
   String selectedFilter = 'ALL';
 
-  final orders = [
-    {
-      'name': 'Nadya Widdy Astuti',
-      'title': 'Labuan Bajo',
-      'image': 'assets/images/labuanbajo.jpg',
-      'price': 500000,
-      'quantity': 2,
-      'status': 'Pending',
-    },
-    {
-      'name': 'Nadya Widdy Astuti',
-      'title': 'Karimun Jawa',
-      'image': 'assets/images/karimunjawa.jpg',
-      'price': 700000,
-      'quantity': 1,
-      'status': 'In Progress',
-    },
-    {
-      'name': 'Nadya Widdy Astuti',
-      'title': 'Curug Pelangi',
-      'image': 'assets/images/curugpelangi.jpg',
-      'price': 800000,
-      'quantity': 3,
-      'status': 'Done',
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final filteredOrders = selectedFilter == 'ALL'
-        ? orders
-        : orders.where((order) => order['status'] == selectedFilter).toList();
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -53,11 +24,11 @@ class _OrderPageState extends State<OrderPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Order Management',
+                "Order Management",
                 style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1450A3),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A4D8F),
                 ),
               ),
               const SizedBox(height: 16),
@@ -91,124 +62,145 @@ class _OrderPageState extends State<OrderPage> {
               ),
               const SizedBox(height: 20),
               Expanded(
-                child: ListView.separated(
-                  itemCount: filteredOrders.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    final order = filteredOrders[index];
-                    final total =
-                        (order['price'] as int) * (order['quantity'] as int);
+                child: FutureBuilder<List<Order>>(
+                  future: OrderService.fetchOrders(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return const Center(child: Text('Error fetching orders'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text('No orders available'));
+                    }
 
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => OrderDetailPage(orderData: order),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: const Color(0xFF1450A3)),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundImage: NetworkImage(
-                                      'https://i.pravatar.cc/150?img=12'),
-                                  radius: 20,
+                    final allOrders = snapshot.data!;
+                    final filteredOrders = selectedFilter == 'ALL'
+                        ? allOrders
+                        : allOrders
+                            .where((order) => order.status == selectedFilter)
+                            .toList();
+
+                    return ListView.separated(
+                      itemCount: filteredOrders.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 16),
+                      itemBuilder: (context, index) {
+                        final order = filteredOrders[index];
+                        final total = order.totalPrice * order.quantity;
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => OrderDetailPage(
+                                  orderData: {
+                                    'name': order.userName,
+                                    'title': order.ticketTitle,
+                                    'quantity': order.quantity,
+                                    'price': order.totalPrice,
+                                    'image': order.image,
+                                  },
                                 ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  order['name'] as String,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  order['status'] as String,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border:
+                                  Border.all(color: const Color(0xFF1450A3)),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black12,
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 )
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.asset(
-                                    order['image'] as String,
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                  ),
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundImage: NetworkImage(
+                                        'https://i.pravatar.cc/150?u=${order.userName}',
+                                      ),
+                                      radius: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      order.userName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      order.status,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        order['title'] as String,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        '${dotenv.env['API_URL']}${order.image}',
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return Image.asset(
+                                            'assets/images/placeholder.jpg',
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                          );
+                                        },
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Rp. ${(order['price'] as int).toStringAsFixed(0)} x${order['quantity']}',
-                                        style: const TextStyle(
-                                            color: Colors.black87),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            order.ticketTitle,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                              'Rp. ${order.totalPrice.toStringAsFixed(0)} x${order.quantity}'),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Total: Rp. ${total.toStringAsFixed(0)}',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Total: Rp. ${total.toStringAsFixed(0)}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.orange),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                ElevatedButton(
-                                  onPressed: () {},
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.orange,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
-                                  ),
-                                  child: const Text(
-                                    'Confirm',
-                                    style: TextStyle(
-                                        color:
-                                            Colors.white), // ✅ warna teks putih
-                                  ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -218,16 +210,15 @@ class _OrderPageState extends State<OrderPage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFF1450A3),
         selectedItemColor: const Color(0xFFFFA500),
         unselectedItemColor: Colors.white,
+        backgroundColor: const Color(0xFF1450A3),
         currentIndex: 1,
         onTap: (index) {
           if (index == 0) {
-            Navigator.pushNamed(context, '/admin/ticket');
+            Navigator.pushReplacementNamed(context, '/admin/ticket');
           } else if (index == 2) {
-            Navigator.pushNamed(context, '/admin/review');
+            Navigator.pushReplacementNamed(context, '/admin/review');
           }
         },
         items: const [
@@ -248,33 +239,25 @@ class _OrderPageState extends State<OrderPage> {
     );
   }
 
-  Widget buildFilterButton(String label, {bool isWide = false}) {
-    final bool isActive = selectedFilter == label;
+  Widget buildFilterButton(String status, {bool isWide = false}) {
+    final isSelected = selectedFilter == status;
 
-    return SizedBox(
-      width: isWide ? 130 : null,
-      child: OutlinedButton(
-        onPressed: () {
-          setState(() {
-            selectedFilter = label;
-          });
-        },
-        style: OutlinedButton.styleFrom(
-          backgroundColor: isActive ? const Color(0xFF1450A3) : Colors.white,
-          side: const BorderSide(color: Color(0xFF1450A3)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isActive ? Colors.white : const Color(0xFF1450A3),
-          ),
+    return ElevatedButton(
+      onPressed: () {
+        setState(() {
+          selectedFilter = status;
+        });
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor:
+            isSelected ? const Color(0xFFFFA500) : Colors.grey[200],
+        foregroundColor: isSelected ? Colors.white : Colors.black,
+        padding: EdgeInsets.symmetric(horizontal: isWide ? 20 : 16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),
         ),
       ),
+      child: Text(status),
     );
   }
 }

@@ -171,11 +171,11 @@ class PaymentPage extends StatelessWidget {
                           backgroundColor: Colors.green,
                         ),
                       );
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const HomePage()),
-                      );
+                      // Navigator.pushReplacement(
+                      //   context,
+                      //   MaterialPageRoute(
+                      //       builder: (context) => const HomePage()),
+                      // );
                     },
                     child: const Text("Pay Now",
                         style: TextStyle(fontSize: 16, color: Colors.white)),

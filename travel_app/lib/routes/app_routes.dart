@@ -4,7 +4,7 @@ class AppRoutes {
   static const register = '/register';
 
   // User
-  static const homeUser = 'user/home';
+  static const homeUser = '/user/home';
   static const booking = 'user/booking';
   static const wishlist = 'user/wishlist';
   static const feedback = 'user/feedback';

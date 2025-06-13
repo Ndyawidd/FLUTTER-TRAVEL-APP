@@ -13,7 +13,7 @@ class _ReviewManagementPageState extends State<ReviewManagementPage> {
 
   final List<Map<String, dynamic>> reviews = [
     {
-      'user': 'Nadya Widya Astuti',
+      'user': 'Nadya Widdy Astuti',
       'date': '4 days ago',
       'location': 'Labuan Bajo',
       'rating': 4.8,
@@ -24,7 +24,7 @@ class _ReviewManagementPageState extends State<ReviewManagementPage> {
       'imageUrl': 'assets/images/labuanbajo.jpg', // ✅ pakai asset
     },
     {
-      'user': 'Nadya Widya Astuti',
+      'user': 'Nadya Widdy Astuti',
       'date': '5 days ago',
       'location': 'Labuan Bajo',
       'rating': 4.9,

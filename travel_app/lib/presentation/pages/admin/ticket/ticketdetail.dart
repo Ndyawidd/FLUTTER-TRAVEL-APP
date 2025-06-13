@@ -2,25 +2,19 @@ import 'package:flutter/material.dart';
 // import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class TicketDetailPage extends StatelessWidget {
-  final String title;
-  final String quota;
+  final String name;
+  final String capacity;
   final String price;
   final String image;
-  final String time;
   final String description;
-  // final double latitude;  // Tambahkan koordinat
-  // final double longitude;
 
   const TicketDetailPage({
     super.key,
-    required this.title,
-    required this.quota,
+    required this.name,
+    required this.capacity,
     required this.price,
     required this.image,
-    required this.time,
     required this.description,
-    // required this.latitude,
-    // required this.longitude,
   });
 
   @override
@@ -62,10 +56,9 @@ class TicketDetailPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            buildInfoItem("Name", title),
-            buildInfoItem("Capacity", quota),
+            buildInfoItem("Name", name),
+            buildInfoItem("Capacity", capacity),
             buildInfoItem("Price", price),
-            buildInfoItem("Operational Time", time),
             buildInfoItem("Description", description),
             // const SizedBox(height: 24),
             // Container(
