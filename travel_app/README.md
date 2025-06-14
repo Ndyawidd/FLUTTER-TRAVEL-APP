@@ -1,3 +1,5 @@
+API_URL=http://192.168.100.65:5000
+
 # travel_app
 
 A new Flutter project.
