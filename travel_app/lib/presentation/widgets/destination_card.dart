@@ -35,11 +35,13 @@ class DestinationCard extends StatelessWidget {
             ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Image.asset(
+              child: Image.network(
                 imageUrl,
-                height: 120, // Fixed height for image
+                height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.error),
               ),
             ),
             Padding(
