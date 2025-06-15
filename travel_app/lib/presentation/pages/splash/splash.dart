@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../routes/app_routes.dart';
 
 class SplashPage extends StatefulWidget {
@@ -18,7 +19,7 @@ class _SplashPageState extends State<SplashPage>
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(seconds: 5),
+      duration: const Duration(seconds: 3),
       vsync: this,
     );
 
@@ -29,9 +30,41 @@ class _SplashPageState extends State<SplashPage>
 
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    });
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final role = prefs.getString('role');
+    final loginTimestamp = prefs.getInt('loginTimestamp');
+
+    // Maksimal durasi sesi (2 minggu)
+    const maxDuration = Duration(days: 14);
+
+    await Future.delayed(
+        const Duration(seconds: 3)); // biar animasi tetap jalan
+
+    if (token != null && role != null && loginTimestamp != null) {
+      final loginDate = DateTime.fromMillisecondsSinceEpoch(loginTimestamp);
+      final now = DateTime.now();
+
+      if (now.difference(loginDate) <= maxDuration) {
+        // Sesi masih aktif
+        if (role == 'ADMIN') {
+          Navigator.pushReplacementNamed(context, AppRoutes.adminTicket);
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.homeUser);
+        }
+        return;
+      } else {
+        // Sesi kadaluarsa
+        await prefs.clear();
+      }
+    }
+
+    // Default: ke login page
+    Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
   @override
@@ -50,7 +83,6 @@ class _SplashPageState extends State<SplashPage>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Perhatikan penggunaan '/' bukan '\'
               Image.asset(
                 'assets/images/TripMate.jpg',
                 height: 120,
@@ -59,7 +91,6 @@ class _SplashPageState extends State<SplashPage>
                       color: Colors.white, size: 60);
                 },
               ),
-
               const SizedBox(height: 20),
               const Text(
                 'TripMate',
