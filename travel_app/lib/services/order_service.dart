@@ -119,6 +119,29 @@ class OrderService {
     }
   }
 
+  /// Update order status
+  static Future<bool> updateOrderStatus(String orderId, String status) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$_apiUrl/orders/$orderId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'status': status}),
+      );
+
+      print("Update order status - STATUS CODE: ${response.statusCode}");
+      print("Update order status - RESPONSE BODY: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        throw Exception('Failed to update order status');
+      }
+    } catch (err) {
+      print('updateOrderStatus error (ID: $orderId, Status: $status): $err');
+      return false;
+    }
+  }
+
   /// Delete an order
   static Future<bool> deleteOrder(int id) async {
     try {

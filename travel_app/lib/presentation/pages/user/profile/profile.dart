@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'dart:convert';
 import '../../../../services/user_service.dart';
 import 'package:travel_app/routes/app_routes.dart';
+import 'edit_profile.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -15,29 +14,15 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   int? userId;
-  bool isEditing = false;
   bool isLoading = true;
+  bool isRefreshing = false;
 
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController usernameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-
+  String name = '';
+  String username = '';
+  String email = '';
   String imageUrl = '';
-  File? imageFile;
-  String? base64Image; // Store base64 image separately
   String role = '';
   double balance = 0.0;
-
-  final ImagePicker _picker = ImagePicker();
-
-  // Helper method untuk format mata uang
-  String formatCurrency(double amount) {
-    return 'Rp ${amount.toStringAsFixed(0).replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]}.',
-        )}';
-  }
 
   @override
   void initState() {
@@ -45,69 +30,118 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadUserData();
   }
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    usernameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
+  String formatCurrency(double amount) {
+    return 'Rp ${amount.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        )}';
   }
 
   Future<void> _loadUserData() async {
+    if (!mounted) return;
+
     setState(() {
       isLoading = true;
     });
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getInt('userId');
+      final storedUserId = prefs.getInt('userId');
 
-      print('SharedPreferences userId: $userId');
-
-      if (userId != null) {
-        this.userId = userId;
+      if (storedUserId != null && storedUserId > 0) {
+        userId = storedUserId;
         await _fetchUserDetails();
       } else {
-        throw Exception('No userId found in SharedPreferences');
+        _handleAuthError('Session expired. Please login again.');
       }
     } catch (e) {
-      print('Error loading user data: $e');
-      _showErrorDialog('Gagal memuat data user. Silakan login kembali.');
-      _redirectToLogin();
+      debugPrint('Error loading user data: $e');
+      _handleAuthError('Failed to load user data. Please login again.');
     }
   }
 
   Future<void> _fetchUserDetails() async {
-    if (userId == null) return;
+    if (userId == null || userId! <= 0 || !mounted) return;
 
     try {
-      print('Fetching user details for userId: $userId');
       final user = await UserService.getUserById(userId!);
-      print('API Response - User data: ${user.toJson()}');
 
-      setState(() {
-        nameController.text = user.name;
-        usernameController.text = user.username;
-        emailController.text = user.email;
-        role = user.role;
-        imageUrl = user.image ?? '';
-        balance = user.balance;
-        isLoading = false;
-        // Reset file and base64 when fetching fresh data
-        imageFile = null;
-        base64Image = null;
-      });
-
-      print('UI Updated with user data successfully');
-      print('Image URL from API: $imageUrl');
+      if (_isValidUserData(user)) {
+        await _updateUserData(user);
+      } else {
+        // Try fallback from SharedPreferences
+        await _loadFromSharedPreferences();
+      }
     } catch (e) {
-      print('Error fetching user details: $e');
-      setState(() {
-        isLoading = false;
-      });
-      _showErrorDialog('Gagal memuat detail user dari server.');
+      debugPrint('Error fetching user details: $e');
+      // Try fallback from SharedPreferences
+      await _loadFromSharedPreferences();
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          isRefreshing = false;
+        });
+      }
     }
+  }
+
+  bool _isValidUserData(dynamic user) {
+    return user != null &&
+        user.userId > 0 &&
+        user.name.isNotEmpty &&
+        user.username.isNotEmpty &&
+        user.email.isNotEmpty;
+  }
+
+  Future<void> _updateUserData(dynamic user) async {
+    if (!mounted) return;
+
+    setState(() {
+      name = user.name ?? '';
+      username = user.username ?? '';
+      email = user.email ?? '';
+      role = user.role ?? '';
+      imageUrl = user.image ?? '';
+      balance = (user.balance ?? 0.0).toDouble();
+    });
+
+    // Update SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user', json.encode(user.toJson()));
+  }
+
+  Future<void> _loadFromSharedPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userJson = prefs.getString('user');
+
+      if (userJson != null) {
+        final userData = json.decode(userJson);
+
+        if (mounted) {
+          setState(() {
+            name = userData['name'] ?? '';
+            username = userData['username'] ?? '';
+            email = userData['email'] ?? '';
+            role = userData['role'] ?? '';
+            imageUrl = userData['image'] ?? '';
+            balance = (userData['balance'] ?? 0.0).toDouble();
+          });
+        }
+      } else {
+        _handleAuthError('No user data found. Please login again.');
+      }
+    } catch (e) {
+      debugPrint('Error loading from SharedPreferences: $e');
+      _handleAuthError('Failed to load user data. Please login again.');
+    }
+  }
+
+  void _handleAuthError(String message) {
+    if (!mounted) return;
+
+    _showErrorDialog(message, onConfirm: _redirectToLogin);
   }
 
   void _redirectToLogin() {
@@ -122,149 +156,59 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  Future<void> _refreshData() async {
+    if (isRefreshing) return;
+
+    setState(() {
+      isRefreshing = true;
+    });
+
+    await _fetchUserDetails();
+  }
+
   Future<void> _handleLogout() async {
     final confirmed = await _showConfirmDialog(
-      'Konfirmasi Logout',
-      'Apakah Anda yakin ingin keluar dari aplikasi?',
+      'Confirm Logout',
+      'Are you sure you want to logout?',
     );
 
     if (!confirmed) return;
+
+    _showLoadingDialog();
 
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
       if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
         Navigator.of(context).pushNamedAndRemoveUntil(
           '/login',
           (route) => false,
         );
       }
     } catch (e) {
-      print('Error during logout: $e');
-      _showErrorDialog('Gagal logout. Silakan coba lagi.');
+      debugPrint('Error during logout: $e');
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        _showErrorDialog('Failed to logout. Please try again.');
+      }
     }
   }
 
-  Future<void> _handleImageUpload() async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 80,
-      );
-
-      if (image != null) {
-        final file = File(image.path);
-        final fileSize = await file.length();
-
-        // Check file size (2MB limit)
-        if (fileSize > 2 * 1024 * 1024) {
-          _showErrorDialog('Ukuran gambar maksimal 2MB');
-          return;
-        }
-
-        // Convert to base64 for upload
-        final bytes = await file.readAsBytes();
-        final base64String = base64Encode(bytes);
-
-        setState(() {
-          imageFile = file;
-          base64Image = 'data:image/jpeg;base64,$base64String';
-        });
-
-        print('Image selected successfully');
-        print('File path: ${file.path}');
-        print('Base64 length: ${base64String.length}');
-      }
-    } catch (e) {
-      print('Error picking image: $e');
-      _showErrorDialog('Gagal memilih gambar');
-    }
-  }
-
-  Future<void> _handleSave() async {
-    if (userId == null) return;
-
-    // Validate required fields
-    if (nameController.text.trim().isEmpty ||
-        usernameController.text.trim().isEmpty ||
-        emailController.text.trim().isEmpty) {
-      _showErrorDialog('Nama, username, dan email tidak boleh kosong');
-      return;
-    }
-
-    // Show loading
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      // Prepare form data
-      final formData = <String, dynamic>{
-        'name': nameController.text.trim(),
-        'username': usernameController.text.trim(),
-        'email': emailController.text.trim(),
-        'role': role,
-        'balance': balance.toString(),
-      };
-
-      // Only include password if it's provided
-      if (passwordController.text.isNotEmpty) {
-        formData['password'] = passwordController.text;
-      }
-
-      // Add image if selected (use base64Image instead of imageFile)
-      if (base64Image != null) {
-        formData['image'] = base64Image;
-        print('Sending image data: ${base64Image!.substring(0, 50)}...');
-      }
-
-      final updatedUser =
-          await UserService.updateUserProfile(userId!, formData);
-
-      print('Update success: ${updatedUser.toJson()}');
-
-      // Update SharedPreferences with new user data
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('userId', updatedUser.userId);
-      await prefs.setString('user', json.encode(updatedUser.toJson()));
-
-      setState(() {
-        isEditing = false;
-        passwordController.clear();
-        balance = updatedUser.balance;
-        imageUrl = updatedUser.image ?? '';
-        isLoading = false;
-        // Clear temporary image data after successful update
-        imageFile = null;
-        base64Image = null;
-      });
-
-      _showSuccessDialog('Profile berhasil diupdate!');
-    } catch (e) {
-      print('Update error: $e');
-      setState(() {
-        isLoading = false;
-      });
-      _showErrorDialog('Gagal update profile: $e');
-    }
-  }
-
-  Future<void> _handleDelete() async {
-    if (userId == null) return;
+  Future<void> _handleDeleteAccount() async {
+    if (userId == null || userId! <= 0) return;
 
     final confirmed = await _showConfirmDialog(
-      'Konfirmasi Hapus',
-      'Apakah Anda yakin ingin menghapus akun ini? Tindakan ini tidak dapat dibatalkan.',
+      'Delete Account',
+      'Are you sure you want to delete your account? This action cannot be undone.',
+      confirmText: 'Delete',
+      isDestructive: true,
     );
 
     if (!confirmed) return;
 
-    setState(() {
-      isLoading = true;
-    });
+    _showLoadingDialog();
 
     try {
       await UserService.deleteUser(userId!);
@@ -272,32 +216,79 @@ class _ProfilePageState extends State<ProfilePage> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
-      _showSuccessDialog('Akun berhasil dihapus.');
-
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/login',
-          (route) => false,
-        );
+        Navigator.of(context).pop(); // Close loading dialog
+        _showSuccessDialog('Account deleted successfully.', onConfirm: () {
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/login',
+            (route) => false,
+          );
+        });
       }
     } catch (e) {
-      print('Failed to delete user: $e');
-      setState(() {
-        isLoading = false;
-      });
-      _showErrorDialog('Gagal menghapus akun: $e');
+      debugPrint('Failed to delete user: $e');
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        _showErrorDialog('Failed to delete account: ${e.toString()}');
+      }
     }
   }
 
-  void _navigateToAddSaldo() async {
+  void _navigateToTopUp() async {
     final result = await Navigator.of(context).pushNamed(AppRoutes.topup);
-
-    if (result == true) {
-      _loadUserData();
+    if (result == true && mounted) {
+      _refreshData();
     }
   }
 
-  Future<bool> _showConfirmDialog(String title, String message) async {
+  void _navigateToEditProfile() async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => EditProfilePage(
+          userId: userId!,
+          currentName: name,
+          currentUsername: username,
+          currentEmail: email,
+          currentImageUrl: imageUrl,
+          currentRole: role,
+          currentBalance: balance,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      _refreshData();
+    }
+  }
+
+  // Dialog Methods
+  void _showLoadingDialog() {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Please wait...'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _showConfirmDialog(
+    String title,
+    String message, {
+    String confirmText = 'Confirm',
+    String cancelText = 'Cancel',
+    bool isDestructive = false,
+  }) async {
+    if (!mounted) return false;
+
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
@@ -306,12 +297,17 @@ class _ProfilePageState extends State<ProfilePage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Batal'),
+                child: Text(cancelText),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Konfirmasi',
-                    style: TextStyle(color: Colors.red)),
+                child: Text(
+                  confirmText,
+                  style: TextStyle(
+                    color: isDestructive ? Colors.red : null,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
@@ -319,7 +315,9 @@ class _ProfilePageState extends State<ProfilePage> {
         false;
   }
 
-  void _showErrorDialog(String message) {
+  void _showErrorDialog(String message, {VoidCallback? onConfirm}) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -327,7 +325,10 @@ class _ProfilePageState extends State<ProfilePage> {
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(context).pop();
+              onConfirm?.call();
+            },
             child: const Text('OK'),
           ),
         ],
@@ -335,15 +336,20 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _showSuccessDialog(String message) {
+  void _showSuccessDialog(String message, {VoidCallback? onConfirm}) {
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Berhasil'),
+        title: const Text('Success'),
         content: Text(message),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () {
+              Navigator.of(context).pop();
+              onConfirm?.call();
+            },
             child: const Text('OK'),
           ),
         ],
@@ -351,173 +357,254 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  // UI Builder Methods
   Widget _buildProfileImage() {
     return Center(
-      child: GestureDetector(
-        onTap: isEditing ? _handleImageUpload : null,
-        child: Stack(
-          children: [
-            Container(
-              width: 128,
-              height: 128,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.blue.shade500,
-                  width: 4,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(64),
-                child: _buildImage(),
-              ),
+      child: Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.blue.shade500,
+            width: 3,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            if (isEditing)
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade600,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(60),
+          child: _buildImage(),
         ),
       ),
     );
   }
 
   Widget _buildImage() {
-    print('Building image widget...');
-    print('imageFile: $imageFile');
-    print('base64Image: ${base64Image != null ? 'Present' : 'Null'}');
-    print('imageUrl: $imageUrl');
-
-    // Priority: 1. New selected image file, 2. Server image URL, 3. Default avatar
-    if (imageFile != null) {
-      print('Displaying local file image');
-      return Image.file(
-        imageFile!,
-        fit: BoxFit.cover,
-        width: 128,
-        height: 128,
-        errorBuilder: (context, error, stackTrace) {
-          print('Error loading local image: $error');
-          return _buildDefaultAvatar();
-        },
-      );
-    } else if (imageUrl.isNotEmpty) {
-      print('Displaying network image: $imageUrl');
-      // Handle both HTTP URLs and base64 data URLs
+    if (imageUrl.isNotEmpty) {
       if (imageUrl.startsWith('data:image')) {
-        // It's a base64 data URL
         try {
           final base64String = imageUrl.split(',')[1];
           final bytes = base64Decode(base64String);
           return Image.memory(
             bytes,
             fit: BoxFit.cover,
-            width: 128,
-            height: 128,
-            errorBuilder: (context, error, stackTrace) {
-              print('Error loading base64 image: $error');
-              return _buildDefaultAvatar();
-            },
+            width: 120,
+            height: 120,
+            errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
           );
         } catch (e) {
-          print('Error decoding base64 image: $e');
+          debugPrint('Error decoding base64 image: $e');
           return _buildDefaultAvatar();
         }
       } else if (imageUrl.startsWith('http')) {
-        // It's a regular HTTP URL
         return Image.network(
           imageUrl,
           fit: BoxFit.cover,
-          width: 128,
-          height: 128,
+          width: 120,
+          height: 120,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           },
-          errorBuilder: (context, error, stackTrace) {
-            print('Error loading network image: $error');
-            return _buildDefaultAvatar();
-          },
+          errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
         );
       }
     }
-
-    print('Displaying default avatar');
     return _buildDefaultAvatar();
   }
 
   Widget _buildDefaultAvatar() {
     return Container(
-      width: 128,
-      height: 128,
-      color: Colors.grey.shade300,
+      width: 120,
+      height: 120,
+      decoration: BoxDecoration(
+        color: Colors.grey.shade200,
+        shape: BoxShape.circle,
+      ),
       child: Icon(
         Icons.person,
-        size: 64,
-        color: Colors.grey.shade600,
+        size: 60,
+        color: Colors.grey.shade500,
       ),
     );
   }
 
-  Widget _buildFormField({
-    required String label,
-    required TextEditingController controller,
-    bool isPassword = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildInfoCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildInfoField('Username', username, Icons.alternate_email),
+          const SizedBox(height: 16),
+          _buildInfoField('Full Name', name, Icons.person),
+          const SizedBox(height: 16),
+          _buildInfoField('Email', email, Icons.email),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _navigateToEditProfile,
+              icon: const Icon(Icons.edit, size: 18),
+              label: const Text('Edit Profile'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoField(String label, String value, IconData icon) {
+    return Row(
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
+        Icon(icon, size: 20, color: Colors.grey.shade600),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value.isEmpty ? 'Not set' : value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: value.isEmpty ? Colors.grey.shade400 : Colors.black87,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 4),
-        if (isEditing)
-          TextField(
-            controller: controller,
-            obscureText: isPassword,
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.all(12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide(color: Colors.blue.shade500),
-              ),
+      ],
+    );
+  }
+
+  Widget _buildBalanceCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade600, Colors.blue.shade400],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.shade200.withOpacity(0.5),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your Balance',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.blue.shade100,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formatCurrency(balance),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
-          )
-        else
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              controller.text,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+          ),
+          FloatingActionButton(
+            onPressed: _navigateToTopUp,
+            backgroundColor: Colors.orange.shade500,
+            heroTag: "topup_fab",
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _handleLogout,
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Logout'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange.shade600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _handleDeleteAccount,
+            icon: const Icon(Icons.delete_forever, size: 18),
+            label: const Text('Delete Account'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -537,240 +624,46 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: _handleLogout,
-            icon: const Icon(
-              Icons.logout,
-              color: Colors.red,
-            ),
-            tooltip: 'Logout',
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E40AF),
           ),
-        ],
-      ),
+        ),
+        // actions: [
+        //   IconButton(
+        //     onPressed: _refreshData,
+        //     icon: isRefreshing
+        //         ? const SizedBox(
+        //             width: 20,
+        //             height: 20,
+        //             child: CircularProgressIndicator(strokeWidth: 2),
+        //           )
+        //         : const Icon(Icons.refresh),
+        //     tooltip: 'Refresh',
+        //   ),
+        // ],
+      ),  
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title
-              const Text(
-                'Profile',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E40AF),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Profile Image
-              _buildProfileImage(),
-              const SizedBox(height: 32),
-
-              // Form Container
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    _buildFormField(
-                      label: 'Username',
-                      controller: usernameController,
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildFormField(
-                      label: 'Full Name',
-                      controller: nameController,
-                    ),
-                    const SizedBox(height: 16),
-
-                    _buildFormField(
-                      label: 'Email',
-                      controller: emailController,
-                    ),
-                    const SizedBox(height: 16),
-
-                    if (isEditing) ...[
-                      _buildFormField(
-                        label: 'New Password (Optional)',
-                        controller: passwordController,
-                        isPassword: true,
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Action Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: isEditing
-                            ? _handleSave
-                            : () => setState(() => isEditing = true),
-                        icon: Icon(
-                          isEditing ? Icons.save : Icons.edit,
-                          size: 20,
-                        ),
-                        label: Text(
-                          isEditing ? 'Save Profile' : 'Edit Profile',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isEditing
-                              ? Colors.blue.shade600
-                              : Colors.blue.shade300,
-                          foregroundColor:
-                              isEditing ? Colors.white : Colors.black87,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Cancel button when editing
-                    if (isEditing) ...[
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: TextButton(
-                          onPressed: () {
-                            setState(() {
-                              isEditing = false;
-                              passwordController.clear();
-                              // Reset image selection
-                              imageFile = null;
-                              base64Image = null;
-                            });
-                            // Reset form data
-                            _fetchUserDetails();
-                          },
-                          child: const Text('Cancel'),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Balance Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade600,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Saldo Anda',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue.shade100,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          formatCurrency(balance),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                    FloatingActionButton(
-                      onPressed: _navigateToAddSaldo,
-                      backgroundColor: Colors.orange.shade500,
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Logout Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _handleLogout,
-                  icon: const Icon(Icons.logout, size: 20),
-                  label: const Text(
-                    'Logout',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Delete Account Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _handleDelete,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Delete Account',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildProfileImage(),
+                const SizedBox(height: 24),
+                _buildInfoCard(),
+                const SizedBox(height: 20),
+                _buildBalanceCard(),
+                const SizedBox(height: 20),
+                _buildActionButtons(),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
