@@ -1,5 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:travel_app/services/review_service.dart';
 
 class ReviewsListPage extends StatefulWidget {
@@ -15,6 +18,8 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
   List<Review> reviews = [];
   bool isLoading = true;
 
+  final String baseUrl = dotenv.env['API_URL'] ?? '';
+
   @override
   void initState() {
     super.initState();
@@ -26,8 +31,30 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
     try {
       final fetchedReviews =
           await ReviewService.getReviewsByTicketId(widget.ticketId);
+
+      // Tambahkan base URL jika image hanya path
+      final adjustedReviews = fetchedReviews.map((review) {
+        if (review.image != null &&
+            review.image!.isNotEmpty &&
+            !review.image!.startsWith('http') &&
+            !review.image!.startsWith('data:image')) {
+          review = Review(
+            reviewId: review.reviewId,
+            userId: review.userId,
+            orderId: review.orderId,
+            ticketId: review.ticketId,
+            rating: review.rating,
+            comment: review.comment,
+            userName: review.userName,
+            image: '$baseUrl${review.image}',
+            createdAt: review.createdAt,
+          );
+        }
+        return review;
+      }).toList();
+
       setState(() {
-        reviews = fetchedReviews;
+        reviews = adjustedReviews;
         isLoading = false;
       });
     } catch (e) {
@@ -36,11 +63,49 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
     }
   }
 
-  String _getStarDisplay(int rating) =>
-      '⭐' * rating + '☆' * (5 - rating);
+  String _getStarDisplay(int rating) => '⭐' * rating + '☆' * (5 - rating);
 
-  String _formatDate(DateTime date) =>
-      DateFormat('dd/MM/yyyy').format(date);
+  String _formatDate(DateTime date) => DateFormat('dd/MM/yyyy').format(date);
+
+  Widget _buildReviewImage(String? image) {
+    if (image == null || image.isEmpty) return const SizedBox();
+
+    // Jika base64
+    if (image.startsWith('data:image') || image.contains('base64,')) {
+      final base64Str = image.split(',').last;
+      return Image.memory(
+        base64Decode(base64Str),
+        width: double.infinity,
+        height: 180,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Text("Gagal memuat base64"),
+      );
+    }
+
+    // Jika path file lokal (hanya jika menggunakan File)
+    if (image.startsWith('/')) {
+      final file = File(image);
+      return Image.file(
+        file,
+        width: double.infinity,
+        height: 180,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Text("Gagal memuat file"),
+      );
+    }
+
+    // Jika URL
+    return Image.network(
+      image,
+      width: double.infinity,
+      height: 180,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const Text(
+        "Gagal memuat gambar",
+        style: TextStyle(fontSize: 10, color: Colors.redAccent),
+      ),
+    );
+  }
 
   Widget _buildReviewCard(Review review) {
     return Container(
@@ -53,7 +118,7 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Rating + User + Tanggal
+          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -70,11 +135,16 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
             ],
           ),
           const SizedBox(height: 4),
-          // Komentar
           Text(
             review.comment,
             style: const TextStyle(fontSize: 12),
           ),
+          const SizedBox(height: 8),
+          if (review.image != null && review.image!.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: _buildReviewImage(review.image),
+            ),
         ],
       ),
     );
@@ -84,7 +154,7 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Semua Review"),
+        title: const Text("All Review"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         centerTitle: true,

@@ -16,4 +16,7 @@ class AppRoutes {
   static const adminDetailTicket = '/admin/detailticket';
   static const adminOrder = '/admin/order';
   static const adminReview = '/admin/review';
+
+  static const history = '/history';
+  static const reviewDetail = '/detail'; 
 }
