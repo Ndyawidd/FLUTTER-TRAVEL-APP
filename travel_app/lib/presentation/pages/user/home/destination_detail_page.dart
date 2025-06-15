@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:intl/intl.dart';
 import 'booking_page.dart';
 import 'map_page.dart';
 import 'package:travel_app/services/ticket_service.dart';
@@ -47,6 +48,23 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
       });
       print('Error loading reviews: $e');
     }
+  }
+
+  String _formatPrice(dynamic price) {
+    final formatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    // Handle different price types
+    if (price is String) {
+      final numPrice = double.tryParse(price) ?? 0;
+      return formatter.format(numPrice);
+    } else if (price is num) {
+      return formatter.format(price);
+    }
+    return 'Rp 0';
   }
 
   String _getStarDisplay(int rating) {
