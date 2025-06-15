@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:travel_app/presentation/pages/user/profile/profile.dart';
+// import 'package:travel_app/presentation/pages/user/profile/profile.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../../../../services/user_service.dart';
