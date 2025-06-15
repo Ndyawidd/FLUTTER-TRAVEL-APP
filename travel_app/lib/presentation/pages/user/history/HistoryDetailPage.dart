@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'package:travel_app/services/order_service.dart';
 import 'package:travel_app/services/ticket_service.dart';
 import 'addReview.dart';
@@ -30,24 +29,21 @@ class HistoryDetailPage extends StatelessWidget {
     }
   }
 
-  Future<Map<String, dynamic>?> _getUserFromStorage() async {
+  Future<int?> _getUserIdFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userString = prefs.getString('user');
-      if (userString != null) {
-        return jsonDecode(userString);
-      }
+      return prefs.getInt('userId');
     } catch (error) {
-      print('Error getting user from storage: $error');
+      print('Error getting userId: $error');
+      return null;
     }
-    return null;
   }
 
   Future<void> _navigateToReview(BuildContext context, Ticket ticket) async {
     // Get user data from storage
-    final userData = await _getUserFromStorage();
+    final userId = await _getUserIdFromStorage();
 
-    if (userData == null) {
+    if (userId == null) {
       // Show error dialog if user not found
       showDialog(
         context: context,
@@ -89,7 +85,7 @@ class HistoryDetailPage extends StatelessWidget {
         builder: (context) => AddReviewPage(
           orderId: order.orderId,
           orderDetails: orderDetails,
-          userDetails: userData,
+          userDetails: {"id": userId}, 
         ),
       ),
     );
