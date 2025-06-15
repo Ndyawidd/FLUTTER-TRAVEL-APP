@@ -1,36 +1,57 @@
 import 'package:flutter/material.dart';
 import 'HistoryDetailPage.dart';
 import '../../../widgets/search_bar.dart';
+import 'package:travel_app/services/order_service.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
-  final List<Map<String, dynamic>> orders = const [
-    {
-      "orderNumber": "TPMT250412001",
-      "place": "Labuan Bajo",
-      'image': 'assets/images/labuanbajo.jpg',
-      "location": "Bandung, Indonesia",
-      "status": "Successful",
-      "statusColor": Colors.green,
-    },
-    {
-      "orderNumber": "TPMT250412002",
-      "place": "Bali",
-      'image': 'assets/images/labuanbajo.jpg',
-      "location": "Denpasar, Indonesia",
-      "status": "Waiting ",
-      "statusColor": Colors.orange,
-    },
-    {
-      "orderNumber": "TPMT250412003",
-      "place": "Yogyakarta",
-      'image': 'assets/images/labuanbajo.jpg',
-      "location": "Yogyakarta, Indonesia",
-      "status": "Cancelled",
-      "statusColor": Colors.red,
-    },
-  ];
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  List<Order> _orders = [];
+  List<Order> _filteredOrders = [];
+  String _searchQuery = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders();
+  }
+
+  Future<void> _fetchOrders() async {
+    final orders = await OrderService.fetchOrders();
+    setState(() {
+      _orders = orders;
+      _filteredOrders = orders;
+    });
+  }
+
+  void _onSearchChanged(String query) {
+    final lowerQuery = query.toLowerCase();
+    setState(() {
+      _searchQuery = query;
+      _filteredOrders = _orders
+          .where(
+              (order) => order.ticketTitle.toLowerCase().contains(lowerQuery))
+          .toList();
+    });
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'CONFIRMED':
+        return Colors.green;
+      case 'PENDING':
+        return Colors.orange;
+      case 'CANCELLED':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,34 +71,45 @@ class HistoryPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             // Search Bar
-            const SearchBarWidget(),
-            const SizedBox(height: 16),
-            // History Cards
-            Expanded(
-              child: ListView.builder(
-                itemCount: orders.length,
-                itemBuilder: (context, index) {
-                  final order = orders[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => HistoryDetailPage(order: order),
-                        ),
-                      );
-                    },
-                    child: HistoryCard(
-                      image: order['image'].toString(),
-                      orderNumber: order['orderNumber'].toString(),
-                      place: order['place'].toString(),
-                      location: order['location'].toString(),
-                      status: order['status'].toString(),
-                      statusColor: order['statusColor'] as Color,
-                    ),
-                  );
-                },
+            TextField(
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search, color: Colors.blue),
+                hintText: "Search destination...",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
+              onChanged: _onSearchChanged,
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: _filteredOrders.isEmpty
+                  ? const Center(child: Text("No booking history found."))
+                  : ListView.builder(
+                      itemCount: _filteredOrders.length,
+                      itemBuilder: (context, index) {
+                        final order = _filteredOrders[index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    HistoryDetailPage(order: order),
+                              ),
+                            );
+                          },
+                          child: HistoryCard(
+                            image: order.image,
+                            orderNumber: order.orderId,
+                            place: order.ticketTitle,
+                            location: order.userName,
+                            status: order.status,
+                            statusColor: _getStatusColor(order.status),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -118,11 +150,15 @@ class HistoryCard extends StatelessWidget {
           // Thumbnail image
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
+            child: Image.network(
               image,
               width: 60,
               height: 60,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.image_not_supported,
+                  size: 60,
+                  color: Colors.grey),
             ),
           ),
           const SizedBox(width: 12),
@@ -145,7 +181,7 @@ class HistoryCard extends StatelessWidget {
                 Row(
                   children: [
                     const Text(
-                      "No Pesanan",
+                      "Order ID",
                       style: TextStyle(color: Colors.grey, fontSize: 12),
                     ),
                     const Spacer(),
