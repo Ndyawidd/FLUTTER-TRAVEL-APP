@@ -3,11 +3,59 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'booking_page.dart';
 import 'map_page.dart';
 import 'package:travel_app/services/ticket_service.dart';
+import 'package:travel_app/services/review_service.dart';
 
-class DestinationDetailPage extends StatelessWidget {
+class DestinationDetailPage extends StatefulWidget {
   final Ticket ticket;
 
   const DestinationDetailPage({super.key, required this.ticket});
+
+  @override
+  State<DestinationDetailPage> createState() => _DestinationDetailPageState();
+}
+
+class _DestinationDetailPageState extends State<DestinationDetailPage> {
+  List<Review> reviews = [];
+  double averageRating = 0.0;
+  bool isLoadingReviews = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReviews();
+  }
+
+  Future<void> _loadReviews() async {
+    setState(() {
+      isLoadingReviews = true;
+    });
+
+    try {
+      final fetchedReviews =
+          await ReviewService.getReviewsByTicketId(widget.ticket.ticketId);
+      final avgRating =
+          await ReviewService.getAverageRating(widget.ticket.ticketId);
+
+      setState(() {
+        reviews = fetchedReviews;
+        averageRating = avgRating;
+        isLoadingReviews = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoadingReviews = false;
+      });
+      print('Error loading reviews: $e');
+    }
+  }
+
+  String _getStarDisplay(int rating) {
+    return '⭐' * rating + '☆' * (5 - rating);
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +77,7 @@ class DestinationDetailPage extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  ticket.image,
+                  widget.ticket.image,
                   width: double.infinity,
                   height: 200,
                   fit: BoxFit.cover,
@@ -44,13 +92,15 @@ class DestinationDetailPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  ticket.name,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    widget.ticket.name,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 Text(
-                  "Rp ${ticket.price}",
+                  "Rp ${widget.ticket.price}",
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -63,14 +113,16 @@ class DestinationDetailPage extends StatelessWidget {
             Row(
               children: [
                 const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                Text(ticket.location,
-                    style: const TextStyle(color: Colors.grey)),
+                Expanded(
+                  child: Text(widget.ticket.location,
+                      style: const TextStyle(color: Colors.grey)),
+                ),
               ],
             ),
 
             const SizedBox(height: 16),
 
-            // Info box
+            // Info box dengan rating dinamis
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -82,11 +134,17 @@ class DestinationDetailPage extends StatelessWidget {
                 children: [
                   Column(children: [
                     const Icon(Icons.star),
-                    Text("4.5\nReviews", textAlign: TextAlign.center)
+                    Text(
+                      "${averageRating.toStringAsFixed(1)}\n${reviews.length} Reviews",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 12),
+                    )
                   ]),
                   Column(children: const [
                     Icon(Icons.favorite),
-                    Text("123\nWishlists", textAlign: TextAlign.center)
+                    Text("123\nWishlists",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 12))
                   ]),
                 ],
               ),
@@ -95,52 +153,100 @@ class DestinationDetailPage extends StatelessWidget {
             const SizedBox(height: 16),
 
             Text(
-              ticket.description,
+              widget.ticket.description,
               style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
 
             const SizedBox(height: 16),
-            const Text("Comments",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFE7F1F6),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      children: const [
-                        Text("⭐ 4/5 - Lee Haechan",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text("Tempatnya asik untuk pergi bersama keluarga"),
-                      ],
-                    ),
+                const Text("Reviews",
+                    style:
+                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                if (!isLoadingReviews)
+                  TextButton(
+                    onPressed: _loadReviews,
+                    child: const Text("Refresh"),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFE7F1F6),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      children: const [
-                        Text("⭐ 4/5 - Lee Haechan",
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text("Tempatnya asik untuk pergi bersama keluarga"),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
+            const SizedBox(height: 8),
+
+            // Reviews section
+            if (isLoadingReviews)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (reviews.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Color(0xFFE7F1F6),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(
+                  child: Text(
+                    "Belum ada review untuk destinasi ini",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              Column(
+                children: [
+                  // Tampilkan maksimal 4 review pertama
+                  ...reviews.take(4).map((review) => Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFE7F1F6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    "${_getStarDisplay(review.rating)} ${review.rating}/5 - ${review.userName}",
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                Text(
+                                  _formatDate(review.createdAt),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              review.comment,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      )),
+
+                  // Tombol lihat semua review jika ada lebih dari 4
+                  if (reviews.length > 4)
+                    TextButton(
+                      onPressed: () {
+                        _showAllReviews(context);
+                      },
+                      child: Text("Lihat semua ${reviews.length} review"),
+                    ),
+                ],
+              ),
 
             const SizedBox(height: 24),
             Row(
@@ -152,7 +258,8 @@ class DestinationDetailPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => MapPage(
-                            locLang: LatLng(ticket.latitude, ticket.longitude),
+                            locLang: LatLng(widget.ticket.latitude,
+                                widget.ticket.longitude),
                           ),
                         ),
                       );
@@ -174,7 +281,7 @@ class DestinationDetailPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              BookingPage(ticketId: ticket.ticketId),
+                              BookingPage(ticketId: widget.ticket.ticketId),
                         ),
                       );
                     },
@@ -188,6 +295,73 @@ class DestinationDetailPage extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showAllReviews(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              const Text(
+                "Semua Review",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: reviews.length,
+                  itemBuilder: (context, index) {
+                    final review = reviews[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFE7F1F6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  "${_getStarDisplay(review.rating)} ${review.rating}/5 - ${review.userName}",
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              Text(
+                                _formatDate(review.createdAt),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(review.comment),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
