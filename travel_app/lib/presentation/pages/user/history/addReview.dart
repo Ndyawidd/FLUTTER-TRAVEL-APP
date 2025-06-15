@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:travel_app/services/review_service.dart';
 import 'package:travel_app/presentation/pages/user/home/reviews_list.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class AddReviewPage extends StatefulWidget {
   final String orderId;
@@ -31,11 +32,47 @@ class _AddReviewPageState extends State<AddReviewPage> {
   Map<String, dynamic>? _orderDetails;
   Map<String, dynamic>? _userDetails;
 
+  // Inisialisasi FlutterLocalNotificationsPlugin
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+
   @override
   void initState() {
     super.initState();
     _orderDetails = widget.orderDetails;
     _loadUserData();
+
+    // Konfigurasi notifikasi lokal
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher'); // Ikon aplikasi Anda
+
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+      macOS: null, // Jika Anda tidak menargetkan macOS
+      linux: null, // Jika Anda tidak menargetkan Linux
+    );
+
+    flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse:
+          (NotificationResponse notificationResponse) async {
+        // Handle saat notifikasi diklik (opsional)
+        // Jika ada payload yang ingin diproses
+        if (notificationResponse.payload != null) {
+          debugPrint(
+              'notification payload: ${notificationResponse.payload}');
+        }
+      },
+    );
   }
 
   Future<void> _loadUserData() async {
@@ -65,10 +102,42 @@ class _AddReviewPageState extends State<AddReviewPage> {
     }
   }
 
+  // --- MODIFIED CODE START ---
   Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Pilih dari Galeri'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromSource(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Ambil dari Kamera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImageFromSource(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
     try {
       final pickedFile = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
+        source: source,
         maxWidth: 1920,
         maxHeight: 1080,
         imageQuality: 85,
@@ -92,6 +161,7 @@ class _AddReviewPageState extends State<AddReviewPage> {
       _showErrorDialog('Gagal memilih gambar: $error');
     }
   }
+  // --- MODIFIED CODE END ---
 
   void _removeImage() {
     setState(() {
@@ -212,7 +282,10 @@ class _AddReviewPageState extends State<AddReviewPage> {
     );
   }
 
-  void _showSuccessDialog() {
+    void _showSuccessDialog() {
+    // Tampilkan notifikasi lokal
+    _showLocalNotification();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -235,6 +308,32 @@ class _AddReviewPageState extends State<AddReviewPage> {
             ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showLocalNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'review_channel_id', // ID unik untuk channel notifikasi Anda
+      'Review Notifications', // Nama channel
+      channelDescription:
+          'Notifications for review submission success', // Deskripsi channel
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: false,
+    );
+    const DarwinNotificationDetails iOSPlatformChannelSpecifics =
+        DarwinNotificationDetails();
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: iOSPlatformChannelSpecifics,
+    );
+    await flutterLocalNotificationsPlugin.show(
+      0, // ID notifikasi unik
+      'Review Added!', // Judul notifikasi
+      'Your review has been successfully submitted.', // Isi notifikasi
+      platformChannelSpecifics,
+      payload: 'review_success_payload', // Data opsional yang bisa Anda sertakan
     );
   }
 
