@@ -32,30 +32,50 @@ class _LoginPageState extends State<LoginPage> {
       final result = await AuthService.login(username, password);
       print("Login result: $result");
 
-      // Simpan token ke local
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('token', result['token']);
-
-      if (result is Map && result['user'] is Map) {
+      if (result is Map && result['user'] is Map && result['token'] != null) {
         final userData = result['user'] as Map;
+        final String token = result['token'].toString();
         final String role = userData['role'].toString();
+        
         print("Detected role: $role");
+        print("User data: $userData");
+
+        // ✅ Gunakan method saveUserSession yang sudah ada di AuthService
+        // Ini akan memastikan semua data tersimpan dengan konsisten
+        await AuthService.saveUserSession(userData, token);
+
+        // ✅ Verifikasi data tersimpan dengan benar
+        final prefs = await SharedPreferences.getInstance();
+        final savedUserId = prefs.getInt('userId');
+        final savedToken = prefs.getString('token');
+        
+        print("✅ Verification after save:");
+        print("- Saved userId: $savedUserId");
+        print("- Saved token: ${savedToken?.substring(0, 20)}...");
+        
+        // ✅ Pastikan userId tersimpan sebelum navigasi
+        if (savedUserId == null) {
+          _showError('Gagal menyimpan data pengguna');
+          return;
+        }
+
         if (role == 'ADMIN') {
           Navigator.pushReplacementNamed(context, AppRoutes.adminTicket);
         } else if (role == 'USER') {
-          // Misal login berhasil dan dapet Map result['user']
           Navigator.pushReplacementNamed(
             context,
             AppRoutes.homeUser,
-            arguments: result['user'],
+            arguments: userData, // Pass userData as arguments
           );
         } else {
           _showError('Peran tidak dikenali');
         }
       } else {
         _showError('Format respons tidak sesuai');
+        print("❌ Invalid response format: $result");
       }
     } catch (e) {
+      print("❌ Login error: $e");
       _showError('Gagal login: ${e.toString()}');
     } finally {
       setState(() {
@@ -66,7 +86,11 @@ class _LoginPageState extends State<LoginPage> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 

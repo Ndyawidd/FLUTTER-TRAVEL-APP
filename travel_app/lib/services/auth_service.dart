@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthService {
   static final String _apiUrl = dotenv.env['API_URL'] ?? '';
 
+  static get console => null;
+
   // ✅ Mirip dengan getUserById di web
   static Future<Map<String, dynamic>?> getUserById(int userId) async {
     try {
@@ -22,6 +24,7 @@ class AuthService {
           'Authorization': 'Bearer $token',
         },
       );
+      console.log("LOGIN user object:", response);
 
       print('📡 API Response Status: ${response.statusCode}');
       print('📡 API Response Body: ${response.body}');
@@ -99,30 +102,57 @@ class AuthService {
   }
 
   // ✅ Simpan session mirip dengan localStorage di web
+  // Update method saveUserSession di AuthService
+
   static Future<void> saveUserSession(
-      Map<String, dynamic> user, String token) async {
+      Map<dynamic, dynamic> user, String token) async {
     final prefs = await SharedPreferences.getInstance();
 
     print('💾 Saving user session:');
     print('- Token: ${token.substring(0, 20)}...');
-    print('- User ID: ${user['id']}');
+    print('- User ID: ${user['userId']}');
     print('- Username: ${user['username']}');
     print('- Email: ${user['email']}');
     print('- Balance: ${user['balance']}');
 
-    // Simpan semua data yang dibutuhkan
-    await prefs.setString('token', token);
-    await prefs.setInt('userId', user['id']); // ✅ Key: userId
-    await prefs.setString('name', user['name'] ?? '');
-    await prefs.setString('username', user['username'] ?? '');
-    await prefs.setString('email', user['email'] ?? '');
-    await prefs.setDouble('balance', (user['balance'] as num? ?? 0).toDouble());
-    await prefs.setString('image', user['image'] ?? '');
-    await prefs.setString('role', user['role'] ?? 'USER');
+    try {
+      // ✅ Safe casting dengan null check
+      await prefs.setString('token', token);
 
-    // Verifikasi data tersimpan
-    print('✅ Session saved successfully');
-    print('✅ Stored userId: ${prefs.getInt('userId')}');
+      // Pastikan id adalah integer
+      final userId = user['userId'];
+      if (userId is int) {
+        await prefs.setInt('userId', userId);
+      } else if (userId is num) {
+        await prefs.setInt('userId', userId.toInt());
+      } else {
+        throw Exception('Invalid userId type: ${userId.runtimeType}');
+      }
+
+      await prefs.setString('name', user['name']?.toString() ?? '');
+      await prefs.setString('username', user['username']?.toString() ?? '');
+      await prefs.setString('email', user['email']?.toString() ?? '');
+
+      // Handle balance dengan aman
+      final balance = user['balance'];
+      if (balance is double) {
+        await prefs.setDouble('balance', balance);
+      } else if (balance is num) {
+        await prefs.setDouble('balance', balance.toDouble());
+      } else {
+        await prefs.setDouble('balance', 0.0);
+      }
+
+      await prefs.setString('image', user['image']?.toString() ?? '');
+      await prefs.setString('role', user['role']?.toString() ?? 'USER');
+
+      // Verifikasi data tersimpan
+      print('✅ Session saved successfully');
+      print('✅ Stored userId: ${prefs.getInt('userId')}');
+    } catch (e) {
+      print('❌ Error saving user session: $e');
+      rethrow;
+    }
   }
 
   // ✅ Update user profile (mirip dengan updateUserProfile di web)

@@ -8,6 +8,8 @@ import '../history/history.dart';
 import '../profile/profile.dart';
 import 'destination_detail_page.dart';
 import 'package:travel_app/services/ticket_service.dart';
+import 'package:travel_app/services/wishlist_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -66,10 +68,63 @@ class _HomeContentState extends State<HomeContent> {
   List<Ticket> _tickets = [];
   bool _isLoading = true;
 
+  Set<int> _wishlistIds = {};
+
   @override
   void initState() {
     super.initState();
     loadTickets();
+    loadWishlist(); // ini
+  }
+
+  Future<int?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getInt('userId');
+    print("userId dari SharedPreferences: $id"); // Tambahkan ini
+    return id;
+  }
+
+  // Ganti method toggleWishlist di _HomeContentState dengan ini:
+
+  Future<void> toggleWishlist(int ticketId) async {
+    final userId = await getUserId();
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("User belum login.")),
+      );
+      return;
+    }
+
+    try {
+      if (_wishlistIds.contains(ticketId)) {
+        print("Menghapus ticketId $ticketId dari wishlist");
+        await WishlistService.removeFromWishlist(userId, ticketId);
+        setState(() {
+          _wishlistIds.remove(ticketId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Dihapus dari wishlist.")),
+        );
+      } else {
+        print("Menambahkan ticketId $ticketId ke wishlist");
+        await WishlistService.addToWishlist(userId, ticketId);
+        setState(() {
+          _wishlistIds.add(ticketId);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Ditambahkan ke wishlist.")),
+        );
+      }
+    } catch (e) {
+      print("Wishlist toggle error: $e");
+
+      // Refresh wishlist state dari server untuk memastikan sinkronisasi
+      await loadWishlist();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Terjadi kesalahan: ${e.toString()}")),
+      );
+    }
   }
 
   Future<void> loadTickets() async {
@@ -78,6 +133,36 @@ class _HomeContentState extends State<HomeContent> {
       _tickets = tickets;
       _isLoading = false;
     });
+  }
+
+  // Ganti method loadWishlist di _HomeContentState dengan ini:
+
+  Future<void> loadWishlist() async {
+    final userId = await getUserId();
+    if (userId == null) return;
+
+    try {
+      final wishlist = await WishlistService.getUserWishlist(userId);
+      print("Fetched wishlist: $wishlist");
+
+      setState(() {
+        // Setiap item dalam wishlist adalah Map<String, dynamic>
+        // Kita perlu mengakses nilai 'ticketId' dari map tersebut
+        _wishlistIds = wishlist
+            .map((item) => item['ticketId'] as int?)
+            .where((ticketId) => ticketId != null)
+            .cast<int>()
+            .toSet();
+      });
+
+      print("Processed wishlist IDs: $_wishlistIds");
+    } catch (e) {
+      print("Error loading wishlist: $e");
+      // Jika error, set empty set
+      setState(() {
+        _wishlistIds = <int>{};
+      });
+    }
   }
 
   @override
@@ -114,16 +199,8 @@ class _HomeContentState extends State<HomeContent> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => DestinationDetailPage(
-                                  title: ticket.name,
-                                  location: ticket.location,
-                                  price: 'Rp ${ticket.price}',
-                                  rating: 4.5, // sementara hardcoded
-                                  imageUrl: ticket.image,
-                                  details: ticket.description,
-                                  locLang:
-                                      LatLng(ticket.latitude, ticket.longitude),
-                                ),
+                                builder: (context) =>
+                                    DestinationDetailPage(ticket: ticket),
                               ),
                             );
                           },
@@ -131,8 +208,22 @@ class _HomeContentState extends State<HomeContent> {
                             title: ticket.name,
                             location: ticket.location,
                             price: 'Rp ${ticket.price}',
-                            rating: 4.5, // sementara hardcoded
+                            rating: 4.5,
                             imageUrl: ticket.image,
+                            isWishlisted:
+                                _wishlistIds.contains(ticket.ticketId),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      DestinationDetailPage(ticket: ticket),
+                                ),
+                              );
+                            },
+                            onWishlistToggle: () {
+                              toggleWishlist(ticket.ticketId);
+                            },
                           ),
                         );
                       },

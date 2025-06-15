@@ -37,11 +37,13 @@ class WishlistCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
+              child: Image.network(
                 imageUrl,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.error),
               ),
             ),
             const SizedBox(width: 12),

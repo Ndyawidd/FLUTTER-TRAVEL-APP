@@ -2,26 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'booking_page.dart';
 import 'map_page.dart';
+import 'package:travel_app/services/ticket_service.dart';
 
 class DestinationDetailPage extends StatelessWidget {
-  final String title;
-  final String location;
-  final String price;
-  final double rating;
-  final String imageUrl;
-  final String details;
-  final LatLng locLang;
+  final Ticket ticket;
 
-  const DestinationDetailPage({
-    super.key,
-    required this.title,
-    required this.location,
-    required this.price,
-    required this.rating,
-    required this.imageUrl,
-    required this.details,
-    required this.locLang,
-  });
+  const DestinationDetailPage({super.key, required this.ticket});
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +28,13 @@ class DestinationDetailPage extends StatelessWidget {
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
-                  imageUrl,
+                child: Image.network(
+                  ticket.image,
                   width: double.infinity,
                   height: 200,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.broken_image, size: 100),
                 ),
               ),
             ),
@@ -57,16 +45,13 @@ class DestinationDetailPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  title,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                  ticket.name,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  price,
+                  "Rp ${ticket.price}",
                   style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red),
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
                 ),
               ],
             ),
@@ -75,9 +60,10 @@ class DestinationDetailPage extends StatelessWidget {
             Row(
               children: [
                 const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                Text(location, style: const TextStyle(color: Colors.grey)),
+                Text(ticket.location, style: const TextStyle(color: Colors.grey)),
               ],
             ),
+
             const SizedBox(height: 16),
 
             // Info box
@@ -92,7 +78,7 @@ class DestinationDetailPage extends StatelessWidget {
                 children: [
                   Column(children: [
                     const Icon(Icons.star),
-                    Text("$rating\nReviews", textAlign: TextAlign.center)
+                    Text("4.5\nReviews", textAlign: TextAlign.center)
                   ]),
                   Column(children: const [
                     Icon(Icons.favorite),
@@ -103,9 +89,9 @@ class DestinationDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: 16),
-            // Display detailed information about the destination
+
             Text(
-              details, // Display the detailed string here
+              ticket.description,
               style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
 
@@ -162,19 +148,15 @@ class DestinationDetailPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => MapPage(
-                            locLang:
-                                locLang, // Pass the LatLng coordinates to the MapPage
+                            locLang: LatLng(ticket.latitude, ticket.longitude),
                           ),
                         ),
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                          color: Color(0xFF1F509A), width: 2.0), // Border color
-                      backgroundColor:
-                          Colors.white, // Background color of the button
-                      foregroundColor:
-                          Color(0xFF1F509A), // Text color (for Map button)
+                      side: const BorderSide(color: Color(0xFF1F509A), width: 2.0),
+                      backgroundColor: Colors.white,
+                      foregroundColor: Color(0xFF1F509A),
                     ),
                     child: const Text("Map"),
                   ),
@@ -187,18 +169,15 @@ class DestinationDetailPage extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (context) => BookingPage(
-                            destination:
-                                title, // Pass only the destination title
-                            date: "", // You can leave the date empty initially
+                            destination: ticket.name,
+                            date: "",
                           ),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          Color(0xFF1F509A), // Background color of the button
-                      foregroundColor:
-                          Colors.white, // Text color (for Book Ticket button)
+                      backgroundColor: Color(0xFF1F509A),
+                      foregroundColor: Colors.white,
                     ),
                     child: const Text("Book Ticket"),
                   ),
