@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 import '../../../../services/user_service.dart';
+import 'package:travel_app/routes/app_routes.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -24,6 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   String imageUrl = '';
   File? imageFile;
+  String? base64Image; // Store base64 image separately
   String role = '';
   double balance = 0.0;
 
@@ -59,7 +61,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getInt('userId'); // Langsung ambil sebagai int
+      final userId = prefs.getInt('userId');
 
       print('SharedPreferences userId: $userId');
 
@@ -92,9 +94,13 @@ class _ProfilePageState extends State<ProfilePage> {
         imageUrl = user.image ?? '';
         balance = user.balance;
         isLoading = false;
+        // Reset file and base64 when fetching fresh data
+        imageFile = null;
+        base64Image = null;
       });
 
       print('UI Updated with user data successfully');
+      print('Image URL from API: $imageUrl');
     } catch (e) {
       print('Error fetching user details: $e');
       setState(() {
@@ -105,7 +111,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _redirectToLogin() {
-    // Clear SharedPreferences and redirect to login
     SharedPreferences.getInstance().then((prefs) {
       prefs.clear();
       if (mounted) {
@@ -126,11 +131,9 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!confirmed) return;
 
     try {
-      // Clear SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
-      // Navigate to login page
       if (mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil(
           '/login',
@@ -162,10 +165,18 @@ class _ProfilePageState extends State<ProfilePage> {
           return;
         }
 
+        // Convert to base64 for upload
+        final bytes = await file.readAsBytes();
+        final base64String = base64Encode(bytes);
+
         setState(() {
           imageFile = file;
-          imageUrl = file.path; // For local preview
+          base64Image = 'data:image/jpeg;base64,$base64String';
         });
+
+        print('Image selected successfully');
+        print('File path: ${file.path}');
+        print('Base64 length: ${base64String.length}');
       }
     } catch (e) {
       print('Error picking image: $e');
@@ -204,11 +215,10 @@ class _ProfilePageState extends State<ProfilePage> {
         formData['password'] = passwordController.text;
       }
 
-      // Add image if selected
-      if (imageFile != null) {
-        final bytes = await imageFile!.readAsBytes();
-        final base64Image = base64Encode(bytes);
-        formData['imageFile'] = 'data:image/jpeg;base64,$base64Image';
+      // Add image if selected (use base64Image instead of imageFile)
+      if (base64Image != null) {
+        formData['image'] = base64Image;
+        print('Sending image data: ${base64Image!.substring(0, 50)}...');
       }
 
       final updatedUser =
@@ -217,11 +227,8 @@ class _ProfilePageState extends State<ProfilePage> {
       print('Update success: ${updatedUser.toJson()}');
 
       // Update SharedPreferences with new user data
-      // Setelah update berhasil
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(
-          'userId', updatedUser.userId); // Simpan userId sebagai int
-// Simpan data user lengkap jika diperlukan untuk keperluan lain
+      await prefs.setInt('userId', updatedUser.userId);
       await prefs.setString('user', json.encode(updatedUser.toJson()));
 
       setState(() {
@@ -230,6 +237,9 @@ class _ProfilePageState extends State<ProfilePage> {
         balance = updatedUser.balance;
         imageUrl = updatedUser.image ?? '';
         isLoading = false;
+        // Clear temporary image data after successful update
+        imageFile = null;
+        base64Image = null;
       });
 
       _showSuccessDialog('Profile berhasil diupdate!');
@@ -264,7 +274,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
       _showSuccessDialog('Akun berhasil dihapus.');
 
-      // Navigate to login page
       if (mounted) {
         Navigator.of(context).pushNamedAndRemoveUntil(
           '/login',
@@ -280,8 +289,12 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _navigateToAddSaldo() {
-    Navigator.of(context).pushNamed('/profile/addSaldo');
+  void _navigateToAddSaldo() async {
+    final result = await Navigator.of(context).pushNamed(AppRoutes.topup);
+
+    if (result == true) {
+      _loadUserData();
+    }
   }
 
   Future<bool> _showConfirmDialog(String title, String message) async {
@@ -383,26 +396,75 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildImage() {
+    print('Building image widget...');
+    print('imageFile: $imageFile');
+    print('base64Image: ${base64Image != null ? 'Present' : 'Null'}');
+    print('imageUrl: $imageUrl');
+
+    // Priority: 1. New selected image file, 2. Server image URL, 3. Default avatar
     if (imageFile != null) {
+      print('Displaying local file image');
       return Image.file(
         imageFile!,
         fit: BoxFit.cover,
-      );
-    } else if (imageUrl.isNotEmpty) {
-      return Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
+        width: 128,
+        height: 128,
         errorBuilder: (context, error, stackTrace) {
+          print('Error loading local image: $error');
           return _buildDefaultAvatar();
         },
       );
-    } else {
-      return _buildDefaultAvatar();
+    } else if (imageUrl.isNotEmpty) {
+      print('Displaying network image: $imageUrl');
+      // Handle both HTTP URLs and base64 data URLs
+      if (imageUrl.startsWith('data:image')) {
+        // It's a base64 data URL
+        try {
+          final base64String = imageUrl.split(',')[1];
+          final bytes = base64Decode(base64String);
+          return Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+            width: 128,
+            height: 128,
+            errorBuilder: (context, error, stackTrace) {
+              print('Error loading base64 image: $error');
+              return _buildDefaultAvatar();
+            },
+          );
+        } catch (e) {
+          print('Error decoding base64 image: $e');
+          return _buildDefaultAvatar();
+        }
+      } else if (imageUrl.startsWith('http')) {
+        // It's a regular HTTP URL
+        return Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          width: 128,
+          height: 128,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            print('Error loading network image: $error');
+            return _buildDefaultAvatar();
+          },
+        );
+      }
     }
+
+    print('Displaying default avatar');
+    return _buildDefaultAvatar();
   }
 
   Widget _buildDefaultAvatar() {
     return Container(
+      width: 128,
+      height: 128,
       color: Colors.grey.shade300,
       child: Icon(
         Icons.person,
@@ -593,6 +655,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             setState(() {
                               isEditing = false;
                               passwordController.clear();
+                              // Reset image selection
+                              imageFile = null;
+                              base64Image = null;
                             });
                             // Reset form data
                             _fetchUserDetails();

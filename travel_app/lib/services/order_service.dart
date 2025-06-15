@@ -11,10 +11,11 @@ class Order {
   final int quantity;
   final double totalPrice;
   final String status;
+  final String date;
 
-  // Tambahan untuk keperluan create
-  final String userId;
-  final String ticketId;
+  // Changed to int types to match backend validation
+  final int userId;
+  final int ticketId;
 
   Order({
     required this.orderId,
@@ -26,6 +27,7 @@ class Order {
     required this.status,
     required this.userId,
     required this.ticketId,
+    required this.date,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -37,18 +39,20 @@ class Order {
       quantity: json['quantity'],
       totalPrice: double.parse(json['totalPrice'].toString()),
       status: json['status'],
-      userId: json['userId'].toString(),
-      ticketId: json['ticketId'].toString(),
+      userId: int.parse(json['userId'].toString()),
+      ticketId: int.parse(json['ticketId'].toString()),
+      date: json['date'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'userId': userId,
-      'ticketId': ticketId,
+      'userId': userId, // Now sends as int
+      'ticketId': ticketId, // Now sends as int
       'quantity': quantity,
-      'totalPrice': totalPrice,
-      'status': status,
+      // 'totalPrice': totalPrice,
+      // 'status': status,
+      'date': date, // Added date field to match backend validation
     };
   }
 }
@@ -77,7 +81,8 @@ class OrderService {
     try {
       final response = await http.get(Uri.parse('$_apiUrl/orders/$id'));
       if (response.statusCode == 200) {
-        return Order.fromJson(jsonDecode(response.body));
+        final decoded = jsonDecode(response.body);
+        return Order.fromJson(decoded['data']);
       } else {
         throw Exception('Order not found');
       }
@@ -90,13 +95,21 @@ class OrderService {
   /// Create a new order
   static Future<Order?> createOrder(Order order) async {
     try {
+      final jsonData = order.toJson();
+      print("JSON being sent: ${jsonEncode(jsonData)}");
+
       final response = await http.post(
         Uri.parse('$_apiUrl/orders'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(order.toJson()),
+        body: jsonEncode(jsonData),
       );
+
+      print("STATUS CODE: ${response.statusCode}");
+      print("RESPONSE BODY: ${response.body}");
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return Order.fromJson(jsonDecode(response.body));
+        final decoded = jsonDecode(response.body);
+        return Order.fromJson(decoded['data']); // <- AMBIL DATA SAJA
       } else {
         throw Exception('Failed to create order');
       }

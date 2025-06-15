@@ -46,12 +46,15 @@ class DestinationDetailPage extends StatelessWidget {
               children: [
                 Text(
                   ticket.name,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   "Rp ${ticket.price}",
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red),
                 ),
               ],
             ),
@@ -60,7 +63,8 @@ class DestinationDetailPage extends StatelessWidget {
             Row(
               children: [
                 const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                Text(ticket.location, style: const TextStyle(color: Colors.grey)),
+                Text(ticket.location,
+                    style: const TextStyle(color: Colors.grey)),
               ],
             ),
 
@@ -154,7 +158,8 @@ class DestinationDetailPage extends StatelessWidget {
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF1F509A), width: 2.0),
+                      side: const BorderSide(
+                          color: Color(0xFF1F509A), width: 2.0),
                       backgroundColor: Colors.white,
                       foregroundColor: Color(0xFF1F509A),
                     ),
@@ -168,10 +173,8 @@ class DestinationDetailPage extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BookingPage(
-                            destination: ticket.name,
-                            date: "",
-                          ),
+                          builder: (context) =>
+                              BookingPage(ticketId: ticket.ticketId),
                         ),
                       );
                     },

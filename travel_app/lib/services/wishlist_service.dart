@@ -74,7 +74,8 @@ class WishlistService {
         // If JSON decode fails, fall through to throw exception
       }
     }
-
     throw Exception("Failed to remove from wishlist");
   }
+
+  
 }

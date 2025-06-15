@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert'; // Tambahkan import ini
+import 'package:travel_app/services/user_service.dart';
 
 class TopUpPage extends StatefulWidget {
   const TopUpPage({super.key});
@@ -8,140 +11,180 @@ class TopUpPage extends StatefulWidget {
 }
 
 class _TopUpPageState extends State<TopUpPage> {
-  double _topUpAmount = 100000;
-  final TextEditingController _controller =
-      TextEditingController(text: '100000');
+  final TextEditingController _controller = TextEditingController();
+  int? userId;
+  double currentBalance = 0; // Ubah ke double untuk konsistensi
 
-  void _onSliderChange(double value) {
-    setState(() {
-      _topUpAmount = value;
-      _controller.text = value.toInt().toString();
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
   }
 
-  void _onTextChanged(String value) {
-    final parsed = double.tryParse(value);
-    if (parsed != null) {
-      setState(() {
-        _topUpAmount = parsed;
-      });
+  Future<void> _loadUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedUserId = prefs.getInt('userId'); // langsung ambil int
+
+      print('UserId from SharedPreferences: $storedUserId');
+
+      if (storedUserId != null) {
+        setState(() {
+          userId = storedUserId;
+        });
+
+        final user = await UserService.getUserById(userId!);
+        setState(() {
+          currentBalance = user.balance;
+        });
+      } else {
+        print('No userId found in SharedPreferences.');
+        // Tambahkan alert/snackbar/redirect kalau perlu
+      }
+    } catch (e) {
+      print('Gagal memuat user: $e');
+    }
+  }
+
+  String _formatRupiah(String value) {
+    if (value.isEmpty) return '';
+    final number = int.tryParse(value) ?? 0;
+    return number.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+  }
+
+  Future<void> _handleTopUp() async {
+    final rawAmount = _controller.text.replaceAll(RegExp(r'\D'), '');
+    final amount = int.tryParse(rawAmount);
+
+    // Debug print untuk troubleshooting
+    print('userId: $userId');
+    print('rawAmount: $rawAmount');
+    print('amount: $amount');
+    print('currentBalance: $currentBalance');
+
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User tidak ditemukan')),
+      );
+      return;
+    }
+
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Jumlah saldo tidak valid')),
+      );
+      return;
+    }
+
+    final newBalance = currentBalance + amount;
+
+    try {
+      await UserService.updateUserBalance(userId!, newBalance);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saldo berhasil ditambahkan!')),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      print('Gagal top up: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal menambahkan saldo')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       appBar: AppBar(
         title: const Text(
-          'Top Up',
-          style: TextStyle(
-            color: Color(0xFF1F509A),
-            fontWeight: FontWeight.bold,
-          ),
+          'Top Up Saldo',
+          style:
+              TextStyle(color: Color(0xFF1F509A), fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Enter Amount",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.15),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _controller,
-              keyboardType: TextInputType.number,
-              onChanged: _onTextChanged,
-              decoration: InputDecoration(
-                hintText: 'Rp 0',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: Color(0xFF1F509A),
-                    width: 2.0,
-                  ),
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ],
+          ),
+          width: double.infinity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Saldo Sekarang',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
-            ),
-            const SizedBox(height: 20),
-            Slider(
-              value: _topUpAmount <= 5000000 ? _topUpAmount : 5000000,
-              min: 0,
-              max: 5000000,
-              divisions: 499,
-              label: 'Rp ${_topUpAmount.toInt()}',
-              activeColor: const Color(0xFFE38E49),
-              inactiveColor: Colors.orange.shade100,
-              onChanged: _onSliderChange,
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FB),
-                borderRadius: BorderRadius.circular(10),
+              const SizedBox(height: 4),
+              Text(
+                'Rp ${_formatRupiah(currentBalance.toInt().toString())}',
+                style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFE38E49)),
               ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Top Up Amount',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Rp ${_topUpAmount.toInt()}',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFFE38E49),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1F509A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.pop(context,
-                      'Top up sebesar Rp ${_topUpAmount.toInt()} berhasil!');
+              const SizedBox(height: 24),
+              TextField(
+                controller: _controller,
+                keyboardType: TextInputType.number,
+                onChanged: (val) {
+                  final onlyNumbers = val.replaceAll(RegExp(r'\D'), '');
+                  _controller.value = TextEditingValue(
+                    text: _formatRupiah(onlyNumbers),
+                    selection: TextSelection.collapsed(
+                        offset: _formatRupiah(onlyNumbers).length),
+                  );
                 },
-                child: const Text(
-                  'Confirm Top Up',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
+                decoration: InputDecoration(
+                  hintText: 'Masukkan jumlah saldo',
+                  prefixText: 'Rp ',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.grey),
                   ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _handleTopUp,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1F509A),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Tambahkan Saldo',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                  ),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

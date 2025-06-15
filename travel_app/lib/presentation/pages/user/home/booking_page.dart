@@ -1,36 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:travel_app/services/ticket_service.dart';
 import 'payment.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false, // Removes the debug banner
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-      ),
-      home: BookingPage(
-        destination: 'Your Destination',
-        date: 'Select a Date',
-      ),
-    );
-  }
-}
-
 class BookingPage extends StatefulWidget {
-  final String destination;
-  final String date;
+  final int ticketId;
 
   const BookingPage({
     super.key,
-    required this.destination,
-    required this.date,
+    required this.ticketId,
   });
 
   @override
@@ -38,173 +15,154 @@ class BookingPage extends StatefulWidget {
 }
 
 class _BookingPageState extends State<BookingPage> {
-  int personCount = 2;
-  late String selectedDate;
+  Ticket? ticket;
+  int quantity = 1;
+  String selectedDate = "";
 
   @override
   void initState() {
     super.initState();
-    selectedDate = widget.date.isNotEmpty
-        ? widget.date
-        : "Select a Date"; // Ensure it is not empty
+    fetchTicket();
   }
 
-  void increasePerson() {
+  Future<void> fetchTicket() async {
+    final fetchedTicket = await TicketService.fetchTicketById(widget.ticketId);
     setState(() {
-      personCount++;
+      ticket = fetchedTicket;
     });
   }
 
-  void decreasePerson() {
-    if (personCount > 1) {
+  void increaseQuantity() {
+    setState(() {
+      quantity++;
+    });
+  }
+
+  void decreaseQuantity() {
+    if (quantity > 1) {
       setState(() {
-        personCount--;
+        quantity--;
       });
     }
   }
 
-  // Function to show the date picker dialog with error handling
   Future<void> _selectDate(BuildContext context) async {
-    try {
-      // Show date picker
-      final DateTime? picked = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime(1999),
-        lastDate: DateTime(2025, 12, 31), // Update lastDate to a valid range
-        builder: (BuildContext context, Widget? child) {
-          return Theme(
-            data: ThemeData.light().copyWith(
-              primaryColor: Colors.indigo,
-              colorScheme: ColorScheme.light().copyWith(
-                secondary:
-                    Colors.indigo, // Use secondary instead of accentColor
-              ),
-              buttonTheme: ButtonThemeData(textTheme: ButtonTextTheme.primary),
-            ),
-            child: child!,
-          );
-        },
-      );
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2025, 12, 31),
+    );
 
-      if (picked != null && picked != DateTime.now()) {
-        setState(() {
-          selectedDate =
-              "${picked.day}/${picked.month}/${picked.year}"; // Formatting the date
-        });
-      }
-    } catch (error) {
-      // Log or show error message
-      print("Error occurred while selecting the date: $error");
+    if (picked != null) {
+      setState(() {
+        selectedDate =
+            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      });
+    }
+  }
+
+  void proceedToPayment() {
+    if (selectedDate.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to pick a date: $error")),
+        const SnackBar(
+            content: Text("Please select a date before proceeding.")),
+      );
+      return;
+    }
+
+    if (ticket != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PaymentPage(
+            ticketId: ticket!.ticketId,
+            date: selectedDate,
+            quantity: quantity,
+          ),
+        ),
       );
     }
   }
 
-  // Navigate to PaymentPage
-  void goToPaymentPage(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PaymentPage(
-          destination: widget.destination,
-          date: selectedDate,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (ticket == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final totalPrice = quantity * ticket!.price;
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Complete Your Booking'),
-        titleTextStyle: TextStyle(fontSize: 20),
+        title: const Text("Booking Details"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        centerTitle: true,
         elevation: 0,
-        centerTitle: true, // Center the title in the AppBar
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              // Destination Section
-              buildRowWithIcon(
-                  "Destination", widget.destination, Icons.location_on),
-
-              const SizedBox(height: 16),
-
-              // Date Section with DatePicker
-              Material(
-                color: Colors.transparent, // Ensure the tap is handled
-                child: InkWell(
-                  onTap: () => _selectDate(context),
-                  child: buildRowWithIcon(
-                      "Date", selectedDate, Icons.calendar_today),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Person Count Section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Person",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: decreasePerson,
-                        icon: const Icon(Icons.remove_circle_outline),
-                      ),
-                      Text(
-                        "$personCount",
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 10),
+            buildRowWithIcon("Destination", ticket!.name, Icons.location_on),
+            const SizedBox(height: 16),
+            InkWell(
+              onTap: () => _selectDate(context),
+              child: buildRowWithIcon(
+                  "Date",
+                  selectedDate.isEmpty ? "Select a date" : selectedDate,
+                  Icons.calendar_today),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Ticket Quantity",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: decreaseQuantity,
+                      icon: const Icon(Icons.remove_circle_outline),
+                    ),
+                    Text("$quantity",
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      IconButton(
-                        onPressed: increasePerson,
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                    ],
-                  ),
-                ],
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      onPressed: increaseQuantity,
+                      icon: const Icon(Icons.add_circle_outline),
+                    ),
+                  ],
+                )
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text("Total Price", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("Rp ${totalPrice.toString()}",
+                style: TextStyle(fontSize: 20, color: Colors.green)),
+            const Spacer(),
+            ElevatedButton(
+              onPressed: proceedToPayment,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.indigo.shade800,
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24)),
               ),
-
-              const Spacer(),
-
-              // Proceed Button (Next)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo.shade800,
-                    minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24)),
-                  ),
-                  onPressed: () {
-                    goToPaymentPage(context); // Navigate to PaymentPage
-                  },
-                  child: const Text("Proceed to Payment",
-                      style: TextStyle(fontSize: 16, color: Colors.white)),
-                ),
-              ),
-            ],
-          ),
+              child: const Text("Proceed to Payment",
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+            )
+          ],
         ),
       ),
     );
   }
 
-  // Build row with text and icon for Destination, Date, and other sections
   Widget buildRowWithIcon(String title, String value, IconData icon) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,7 +176,6 @@ class _BookingPageState extends State<BookingPage> {
         ),
         const SizedBox(height: 4),
         Text(value, style: const TextStyle(color: Colors.grey)),
-        const SizedBox(height: 16),
       ],
     );
   }

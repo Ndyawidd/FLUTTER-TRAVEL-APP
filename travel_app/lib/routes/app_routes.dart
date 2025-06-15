@@ -9,6 +9,7 @@ class AppRoutes {
   static const wishlist = 'user/wishlist';
   static const feedback = 'user/feedback';
   static const profile = 'user/profile';
+  static const topup = 'user/top_up';
 
   // Admin routes
   static const adminTicket = '/admin/ticket';

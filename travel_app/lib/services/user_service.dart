@@ -217,26 +217,9 @@ class UserService {
     }
   }
 
-  /// Update user balance
-  static Future<User> updateUserBalance(int userId, double newBalance) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$_apiUrl/users/$userId/balance'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'balance': newBalance}),
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return User.fromJson(data);
-      } else {
-        throw Exception('Failed to update balance: ${response.statusCode}');
-      }
-    } catch (err) {
-      print('updateUserBalance error: $err');
-      throw Exception('Failed to update balance: $err');
-    }
+  static Future<void> updateUserBalance(int userId, double newBalance) async {
+    await updateUserProfileJson(userId, {
+      'balance': newBalance,
+    });
   }
 }
