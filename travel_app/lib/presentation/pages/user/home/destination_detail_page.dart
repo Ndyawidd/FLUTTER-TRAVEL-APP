@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'booking_page.dart';
 import 'map_page.dart';
+import 'reviews_list.dart';
 import 'package:travel_app/services/ticket_service.dart';
 import 'package:travel_app/services/review_service.dart';
 
@@ -57,7 +58,6 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
       decimalDigits: 0,
     );
 
-    // Handle different price types
     if (price is String) {
       final numPrice = double.tryParse(price) ?? 0;
       return formatter.format(numPrice);
@@ -72,7 +72,40 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  Widget _buildReviewCard(Review review) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE7F1F6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  "${_getStarDisplay(review.rating)} ${review.rating}/5 - ${review.userName}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              Text(
+                _formatDate(review.createdAt),
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(review.comment, style: const TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
   }
 
   @override
@@ -90,7 +123,6 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Gambar
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -105,28 +137,21 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Judul dan Harga
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
                     widget.ticket.name,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Text(
-                  "Rp ${widget.ticket.price}",
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red),
+                  _formatPrice(widget.ticket.price),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
                 ),
               ],
             ),
-
             const SizedBox(height: 4),
             Row(
               children: [
@@ -137,14 +162,11 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
-
-            // Info box dengan rating dinamis
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Color(0xFFE7F1F6),
+                color: const Color(0xFFE7F1F6),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -167,31 +189,32 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
-
             Text(
               widget.ticket.description,
               style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
-
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text("Reviews",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 if (!isLoadingReviews)
                   TextButton(
-                    onPressed: _loadReviews,
-                    child: const Text("Refresh"),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ReviewsListPage(ticketId: widget.ticket.ticketId),
+                        ),
+                      );
+                    },
+                    child: const Text("See More"),
                   ),
               ],
             ),
             const SizedBox(height: 8),
-
-            // Reviews section
             if (isLoadingReviews)
               const Center(
                 child: Padding(
@@ -203,7 +226,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Color(0xFFE7F1F6),
+                  color: const Color(0xFFE7F1F6),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Center(
@@ -216,46 +239,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
             else
               Column(
                 children: [
-                  // Tampilkan maksimal 4 review pertama
-                  ...reviews.take(4).map((review) => Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFE7F1F6),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    "${_getStarDisplay(review.rating)} ${review.rating}/5 - ${review.userName}",
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                Text(
-                                  _formatDate(review.createdAt),
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              review.comment,
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      )),
-
-                  // Tombol lihat semua review jika ada lebih dari 4
+                  ...reviews.take(4).map(_buildReviewCard),
                   if (reviews.length > 4)
                     TextButton(
                       onPressed: () {
@@ -265,7 +249,6 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                     ),
                 ],
               ),
-
             const SizedBox(height: 24),
             Row(
               children: [
@@ -276,17 +259,16 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => MapPage(
-                            locLang: LatLng(widget.ticket.latitude,
-                                widget.ticket.longitude),
+                            locLang: LatLng(
+                                widget.ticket.latitude, widget.ticket.longitude),
                           ),
                         ),
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: Color(0xFF1F509A), width: 2.0),
+                      side: const BorderSide(color: Color(0xFF1F509A), width: 2.0),
                       backgroundColor: Colors.white,
-                      foregroundColor: Color(0xFF1F509A),
+                      foregroundColor: const Color(0xFF1F509A),
                     ),
                     child: const Text("Map"),
                   ),
@@ -298,13 +280,12 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              BookingPage(ticketId: widget.ticket.ticketId),
+                          builder: (context) => BookingPage(ticketId: widget.ticket.ticketId),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF1F509A),
+                      backgroundColor: const Color(0xFF1F509A),
                       foregroundColor: Colors.white,
                     ),
                     child: const Text("Book Ticket"),
@@ -340,41 +321,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                   controller: scrollController,
                   itemCount: reviews.length,
                   itemBuilder: (context, index) {
-                    final review = reviews[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Color(0xFFE7F1F6),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  "${_getStarDisplay(review.rating)} ${review.rating}/5 - ${review.userName}",
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              Text(
-                                _formatDate(review.createdAt),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(review.comment),
-                        ],
-                      ),
-                    );
+                    return _buildReviewCard(reviews[index]);
                   },
                 ),
               ),
