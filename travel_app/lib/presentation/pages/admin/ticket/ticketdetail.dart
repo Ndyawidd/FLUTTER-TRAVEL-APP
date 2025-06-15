@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class TicketDetailPage extends StatelessWidget {
   final String name;
@@ -19,6 +18,7 @@ class TicketDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('Detail image URL: $image\n\n\n\n');
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -44,14 +44,23 @@ class TicketDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Show network image instead of asset image
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.asset(
+                child: Image.network(
                   image,
                   width: double.infinity,
                   height: 200,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Image.asset(
+                      'assets/images/placeholder.jpg',
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
+                    );
+                  },
                 ),
               ),
             ),
@@ -60,28 +69,6 @@ class TicketDetailPage extends StatelessWidget {
             buildInfoItem("Capacity", capacity),
             buildInfoItem("Price", price),
             buildInfoItem("Description", description),
-            // const SizedBox(height: 24),
-            // Container(
-            //   height: 250,
-            //   decoration: BoxDecoration(
-            //     borderRadius: BorderRadius.circular(16),
-            //     border: Border.all(color: Color(0xFF1450A3)),
-            //   ),
-            //   child: ClipRRect(
-            //     borderRadius: BorderRadius.circular(16),
-            //     child: GoogleMap(
-            //       initialCameraPosition: _initialPosition,
-            //       markers: {
-            //         Marker(
-            //           markerId: const MarkerId('destination'),
-            //           position: LatLng(latitude, longitude),
-            //           infoWindow: InfoWindow(title: title),
-            //         ),
-            //       },
-            //       zoomControlsEnabled: false,
-            //     ),
-            //   ),
-            // ),
           ],
         ),
       ),

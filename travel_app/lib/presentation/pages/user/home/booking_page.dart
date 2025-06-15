@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:travel_app/services/ticket_service.dart';
 import 'payment.dart';
+import 'package:intl/intl.dart';
 
 class BookingPage extends StatefulWidget {
   final int ticketId;
@@ -143,7 +144,7 @@ class _BookingPageState extends State<BookingPage> {
             ),
             const SizedBox(height: 16),
             Text("Total Price", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("Rp ${totalPrice.toString()}",
+            Text("Rp ${NumberFormat('#,##0', 'id_ID').format(totalPrice)}",
                 style: TextStyle(fontSize: 20, color: Colors.green)),
             const Spacer(),
             ElevatedButton(
