@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:travel_app/services/review_service.dart';
 
-class DestinationCard extends StatelessWidget {
+class DestinationCard extends StatefulWidget {
   final String title;
   final String location;
   final String price;
-  final double rating;
   final String imageUrl;
   final bool isWishlisted;
+  final int ticketId;
+  final double averageRating;
+  final int reviewCount;
   final VoidCallback onTap;
   final VoidCallback onWishlistToggle;
 
@@ -15,17 +18,33 @@ class DestinationCard extends StatelessWidget {
     required this.title,
     required this.location,
     required this.price,
-    required this.rating,
     required this.imageUrl,
     required this.isWishlisted,
+    required this.ticketId,
+    required this.averageRating,
+    required this.reviewCount,
     required this.onTap,
     required this.onWishlistToggle,
   });
 
   @override
+  State<DestinationCard> createState() => _DestinationCardState();
+}
+
+class _DestinationCardState extends State<DestinationCard> {
+  double averageRating = 0.0;
+  int reviewCount = 0;
+  bool isLoadingRating = true;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -35,14 +54,13 @@ class DestinationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Gambar dengan ikon love di pojok kanan atas
             Stack(
               children: [
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(16)),
                   child: Image.network(
-                    imageUrl,
+                    widget.imageUrl,
                     height: 120,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -54,7 +72,7 @@ class DestinationCard extends StatelessWidget {
                   top: 8,
                   right: 8,
                   child: GestureDetector(
-                    onTap: onWishlistToggle,
+                    onTap: widget.onWishlistToggle,
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
@@ -70,10 +88,12 @@ class DestinationCard extends StatelessWidget {
                       ),
                       child: IconButton(
                         icon: Icon(
-                          isWishlisted ? Icons.favorite : Icons.favorite_border,
+                          widget.isWishlisted
+                              ? Icons.favorite
+                              : Icons.favorite_border,
                           color: Colors.red,
                         ),
-                        onPressed: onWishlistToggle,
+                        onPressed: widget.onWishlistToggle,
                       ),
                     ),
                   ),
@@ -86,32 +106,58 @@ class DestinationCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    widget.title,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    location,
+                    widget.location,
                     style: const TextStyle(color: Colors.grey),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    price,
+                    widget.price,
                     style: const TextStyle(color: Colors.orange),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       const Icon(Icons.star, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
-                      Text(
-                        rating.toString(),
-                        style: const TextStyle(fontSize: 14),
+                      Expanded(
+                        child: Text(
+                          widget.averageRating == 0.0
+                              ? "No rating yet"
+                              : "${widget.averageRating.toStringAsFixed(1)} (${widget.reviewCount} reviews)",
+                          style: const TextStyle(fontSize: 12),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      // if (isLoadingRating)
+                      //   const SizedBox(
+                      //     width: 12,
+                      //     height: 12,
+                      //     child: CircularProgressIndicator(
+                      //       strokeWidth: 2,
+                      //     ),
+                      //   )
+                      // else
+                      //   Expanded(
+                      //     child: Text(
+                      //       averageRating == 0.0
+                      //           ? "No rating yet"
+                      //           : "${averageRating.toStringAsFixed(1)} ($reviewCount reviews)",
+                      //       style: const TextStyle(fontSize: 12),
+                      //       maxLines: 1,
+                      //       overflow: TextOverflow.ellipsis,
+                      //     ),
+                      //   ),
                     ],
                   ),
                 ],

@@ -57,7 +57,6 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
       decimalDigits: 0,
     );
 
-    // Handle different price types
     if (price is String) {
       final numPrice = double.tryParse(price) ?? 0;
       return formatter.format(numPrice);
@@ -90,7 +89,6 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Gambar
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
@@ -118,7 +116,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                   ),
                 ),
                 Text(
-                  "Rp ${widget.ticket.price}",
+                  "Rp ${NumberFormat('#,##0', 'id_ID').format(widget.ticket.price)}",
                   style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -140,7 +138,6 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
 
             const SizedBox(height: 16),
 
-            // Info box dengan rating dinamis
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -152,17 +149,25 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                 children: [
                   Column(children: [
                     const Icon(Icons.star),
+                    isLoadingReviews
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            "${averageRating.toStringAsFixed(1)}\n${reviews.length} Reviews",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12),
+                          )
+                  ]),
+                  Column(children: [
+                    const Icon(Icons.group), // Icon for capacity
                     Text(
-                      "${averageRating.toStringAsFixed(1)}\n${reviews.length} Reviews",
+                      "${widget.ticket.capacity}\nCapacity", // Display capacity
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 12),
                     )
-                  ]),
-                  Column(children: const [
-                    Icon(Icons.favorite),
-                    Text("123\nWishlists",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12))
                   ]),
                 ],
               ),
@@ -184,14 +189,15 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                         TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 if (!isLoadingReviews)
                   TextButton(
-                    onPressed: _loadReviews,
+                    onPressed: () {
+                      _loadReviews();
+                    },
                     child: const Text("Refresh"),
                   ),
               ],
             ),
             const SizedBox(height: 8),
 
-            // Reviews section
             if (isLoadingReviews)
               const Center(
                 child: Padding(
