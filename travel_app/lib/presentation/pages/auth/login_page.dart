@@ -36,23 +36,24 @@ class _LoginPageState extends State<LoginPage> {
         final userData = result['user'] as Map;
         final String token = result['token'].toString();
         final String role = userData['role'].toString();
-        
+
         print("Detected role: $role");
         print("User data: $userData");
 
         // ✅ Gunakan method saveUserSession yang sudah ada di AuthService
         // Ini akan memastikan semua data tersimpan dengan konsisten
         await AuthService.saveUserSession(userData, token);
+        final prefz = await SharedPreferences.getInstance();
+        prefz.setString('userName', userData['name'].toString());
 
-        // ✅ Verifikasi data tersimpan dengan benar
         final prefs = await SharedPreferences.getInstance();
         final savedUserId = prefs.getInt('userId');
         final savedToken = prefs.getString('token');
-        
+
         print("✅ Verification after save:");
         print("- Saved userId: $savedUserId");
         print("- Saved token: ${savedToken?.substring(0, 20)}...");
-        
+
         // ✅ Pastikan userId tersimpan sebelum navigasi
         if (savedUserId == null) {
           _showError('Gagal menyimpan data pengguna');

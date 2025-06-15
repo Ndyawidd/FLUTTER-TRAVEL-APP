@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:travel_app/services/ticket_service.dart';
 import 'package:travel_app/services/user_service.dart';
+import 'package:intl/intl.dart';
 import 'home.dart';
 import 'top_up.dart';
 import 'package:travel_app/services/order_service.dart';
@@ -176,26 +177,6 @@ class _PaymentPageState extends State<PaymentPage> {
 
               const SizedBox(height: 16),
 
-              // Countdown
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    "Complete Payment In",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    "57:01",
-                    style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
               // Ticket Info
               buildRowWithIcon("Destination", ticket!.name, Icons.location_on),
               buildRowWithIcon("Date", widget.date, Icons.calendar_today),
@@ -230,7 +211,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          "Rp ${balance.toStringAsFixed(0)}",
+                          "Rp ${NumberFormat('#,##0', 'id_ID').format(balance)}",
                           style: const TextStyle(fontSize: 16),
                         ),
                         TextButton(
@@ -269,7 +250,7 @@ class _PaymentPageState extends State<PaymentPage> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    "Rp ${subtotal.toStringAsFixed(0)}",
+                    "Rp ${NumberFormat('#,##0', 'id_ID').format(subtotal)}",
                     style: const TextStyle(fontSize: 16),
                   ),
                 ],
