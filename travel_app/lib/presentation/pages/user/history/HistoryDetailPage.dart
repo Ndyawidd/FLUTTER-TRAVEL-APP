@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'package:travel_app/services/order_service.dart';
 import 'package:travel_app/services/ticket_service.dart';
 import 'addReview.dart';
@@ -26,6 +28,71 @@ class HistoryDetailPage extends StatelessWidget {
       default:
         return Colors.grey;
     }
+  }
+
+  Future<Map<String, dynamic>?> _getUserFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userString = prefs.getString('user');
+      if (userString != null) {
+        return jsonDecode(userString);
+      }
+    } catch (error) {
+      print('Error getting user from storage: $error');
+    }
+    return null;
+  }
+
+  Future<void> _navigateToReview(BuildContext context, Ticket ticket) async {
+    // Get user data from storage
+    final userData = await _getUserFromStorage();
+
+    if (userData == null) {
+      // Show error dialog if user not found
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: const Text(
+              'Silakan login terlebih dahulu untuk memberikan review.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Prepare order details
+    final orderDetails = {
+      'orderId': order.orderId,
+      'ticketId': order.ticketId,
+      'date': order.date,
+      'updatedAt': ticket.updatedAt,
+      'status': order.status,
+      'quantity': order.quantity,
+      'totalPrice': order.totalPrice,
+      'ticket': {
+        'name': ticket.name,
+        'location': ticket.location,
+        'image': ticket.image,
+      },
+    };
+
+    // Navigate to AddReviewPage with required parameters
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddReviewPage(
+          orderId: order.orderId,
+          orderDetails: orderDetails,
+          userDetails: userData,
+        ),
+      ),
+    );
   }
 
   @override
@@ -77,10 +144,21 @@ class HistoryDetailPage extends StatelessWidget {
                   GestureDetector(
                     onTap: () {
                       if (!isReviewDisabled) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const AddReviewPage(),
+                        _navigateToReview(context, ticket);
+                      } else {
+                        // Show info dialog for disabled review
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Info'),
+                            content: const Text(
+                                'Review hanya dapat diberikan untuk pesanan yang sudah dikonfirmasi.'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('OK'),
+                              ),
+                            ],
                           ),
                         );
                       }
@@ -104,10 +182,12 @@ class HistoryDetailPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            "Let's leave positive destination and write the review!",
-                            style:
-                                TextStyle(fontSize: 12, color: Colors.black54),
+                          Text(
+                            isReviewDisabled
+                                ? "Review dapat diberikan setelah pesanan dikonfirmasi"
+                                : "Let's leave positive destination and write the review!",
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54),
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
@@ -170,16 +250,34 @@ class HistoryDetailPage extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              ticket.name,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 20),
+                            Expanded(
+                              child: Text(
+                                ticket.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 20),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            Text(
-                              order.status,
-                              style: TextStyle(
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: getStatusColor(order.status)
+                                    .withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
                                   color: getStatusColor(order.status),
-                                  fontWeight: FontWeight.bold),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                order.status,
+                                style: TextStyle(
+                                    color: getStatusColor(order.status),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12),
+                              ),
                             ),
                           ],
                         ),
@@ -203,7 +301,7 @@ class HistoryDetailPage extends StatelessWidget {
                         detailRow(
                             "Ticket Quantity", "${order.quantity} tickets"),
                         detailRow("Total Price",
-                            "Rp ${order.totalPrice.toStringAsFixed(0)}"),
+                            "Rp ${NumberFormat('#,###').format(order.totalPrice)}"),
                       ],
                     ),
                   ),
@@ -224,9 +322,12 @@ class HistoryDetailPage extends StatelessWidget {
         children: [
           Text(label,
               style: const TextStyle(fontSize: 13, color: Colors.black54)),
-          Text(value,
-              style:
-                  const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+          Flexible(
+            child: Text(value,
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                textAlign: TextAlign.end),
+          ),
         ],
       ),
     );

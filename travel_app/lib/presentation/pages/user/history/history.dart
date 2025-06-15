@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'HistoryDetailPage.dart';
 import '../../../widgets/search_bar.dart';
 import 'package:travel_app/services/order_service.dart';
@@ -14,19 +15,65 @@ class _HistoryPageState extends State<HistoryPage> {
   List<Order> _orders = [];
   List<Order> _filteredOrders = [];
   String _searchQuery = "";
+  int? userId;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchOrders();
+    _loadUserAndFetchOrders();
+  }
+
+  Future<void> _loadUserAndFetchOrders() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+
+    // Ambil userId langsung dari SharedPreferences
+    final storedUserId = prefs.getInt('userId');
+    print("Stored userId in history page: $storedUserId");
+
+    if (storedUserId != null) {
+      userId = storedUserId;
+      await _fetchOrders();
+    } else {
+      print("No userId found in SharedPreferences");
+    }
+
+    setState(() {
+      isLoading = false;
+    });
   }
 
   Future<void> _fetchOrders() async {
-    final orders = await OrderService.fetchOrders();
-    setState(() {
-      _orders = orders;
-      _filteredOrders = orders;
-    });
+    if (userId == null) {
+      print("UserId is null, cannot fetch orders");
+      return;
+    }
+
+    try {
+      print("Fetching orders for userId: $userId");
+      final allOrders = await OrderService.fetchOrders();
+      print("All orders data received: ${allOrders.length} orders");
+
+      // Filter orders by current userId
+      final userOrders =
+          allOrders.where((order) => order.userId == userId).toList();
+      print("Filtered orders for user $userId: ${userOrders.length} orders");
+
+      setState(() {
+        _orders = userOrders;
+        _filteredOrders = userOrders;
+      });
+    } catch (e) {
+      print("Error fetching orders: $e");
+      setState(() {
+        _orders = [];
+        _filteredOrders = [];
+      });
+    }
   }
 
   void _onSearchChanged(String query) {
@@ -83,33 +130,57 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: _filteredOrders.isEmpty
-                  ? const Center(child: Text("No booking history found."))
-                  : ListView.builder(
-                      itemCount: _filteredOrders.length,
-                      itemBuilder: (context, index) {
-                        final order = _filteredOrders[index];
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    HistoryDetailPage(order: order),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _filteredOrders.isEmpty
+                      ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.history,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                "No booking history found.",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredOrders.length,
+                          itemBuilder: (context, index) {
+                            final order = _filteredOrders[index];
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        HistoryDetailPage(order: order),
+                                  ),
+                                );
+                              },
+                              child: HistoryCard(
+                                image: order.image,
+                                orderNumber: order.orderId,
+                                place: order.ticketTitle,
+                                location: order.userName,
+                                status: order.status,
+                                statusColor: _getStatusColor(order.status),
+                                quantity: order.quantity,
+                                totalPrice: order.totalPrice,
+                                date: order.date,
                               ),
                             );
                           },
-                          child: HistoryCard(
-                            image: order.image,
-                            orderNumber: order.orderId,
-                            place: order.ticketTitle,
-                            location: order.userName,
-                            status: order.status,
-                            statusColor: _getStatusColor(order.status),
-                          ),
-                        );
-                      },
-                    ),
+                        ),
             ),
           ],
         ),
@@ -125,6 +196,9 @@ class HistoryCard extends StatelessWidget {
   final String location;
   final String status;
   final Color statusColor;
+  final int quantity;
+  final double totalPrice;
+  final String date;
 
   const HistoryCard({
     super.key,
@@ -134,6 +208,9 @@ class HistoryCard extends StatelessWidget {
     required this.location,
     required this.status,
     required this.statusColor,
+    required this.quantity,
+    required this.totalPrice,
+    required this.date,
   });
 
   @override
@@ -176,6 +253,24 @@ class HistoryCard extends StatelessWidget {
                 Text(
                   location,
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Quantity: $quantity",
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Total: Rp ${totalPrice.toStringAsFixed(0)}",
+                  style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Date: $date",
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
                 const SizedBox(height: 8),
                 Row(
