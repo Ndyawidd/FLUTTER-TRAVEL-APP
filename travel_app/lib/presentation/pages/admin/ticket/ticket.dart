@@ -67,6 +67,8 @@ class _TicketPageState extends State<TicketPage> {
               price: formatCurrency(ticket.price),
               image: ticket.image,
               description: ticket.description,
+              latitude: ticket.latitude, // ← Tambahkan ini
+              longitude: ticket.longitude,
             ),
           ),
         );
