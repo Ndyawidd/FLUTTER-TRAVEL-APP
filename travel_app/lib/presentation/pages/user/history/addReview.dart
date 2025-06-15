@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:travel_app/services/review_service.dart';
-import 'history.dart';
+import 'package:travel_app/presentation/pages/user/home/reviews_list.dart';
 
 class AddReviewPage extends StatefulWidget {
   final String orderId;
@@ -216,33 +216,22 @@ class _AddReviewPageState extends State<AddReviewPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Berhasil'),
-        content: const Text('Review berhasil dikirim!'),
+        title: const Text('Success'),
+        content: const Text('Review submitted successfully!'),
         actions: [
-          // Opsi 1: Ke History (default)
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // Close dialog
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const HistoryPage()),
-                (route) => false,
-              );
-            },
-            child: const Text('Lihat History'),
-          ),
-
-          // Opsi 2: Ke Detail (opsional)
           if (_orderDetails?['ticketId'] != null)
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close dialog
-                Navigator.pushReplacementNamed(
+                Navigator.pop(context);
+                Navigator.pushReplacement(
                   context,
-                  '/detail/${_orderDetails!['ticketId']}',
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ReviewsListPage(ticketId: _orderDetails!['ticketId']),
+                  ),
                 );
               },
-              child: const Text('Lihat Detail'),
+              child: const Text('See Detail'),
             ),
         ],
       ),
