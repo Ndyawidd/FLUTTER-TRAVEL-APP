@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:travel_app/services/review_service.dart';
-import 'review.dart';
+import 'history.dart';
 
 class AddReviewPage extends StatefulWidget {
   final String orderId;
@@ -35,8 +35,34 @@ class _AddReviewPageState extends State<AddReviewPage> {
   void initState() {
     super.initState();
     _orderDetails = widget.orderDetails;
-    _userDetails = widget.userDetails;
-    // Jika data tidak diberikan, Anda bisa fetch dari API di sini
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      // Always load user data from SharedPreferences to ensure we have the latest data
+      final userData = await _getUserFromStorage();
+      if (userData != null) {
+        setState(() {
+          _userDetails = userData;
+        });
+      } else if (widget.userDetails != null) {
+        // Fallback to widget userDetails if available
+        setState(() {
+          _userDetails = widget.userDetails;
+        });
+      }
+    } catch (error) {
+      print('Error loading user data: $error');
+      // Set a default user if error occurs
+      setState(() {
+        _userDetails = {
+          'name': 'Unknown User',
+          'username': 'unknown',
+          'image': null,
+        };
+      });
+    }
   }
 
   Future<void> _pickImage() async {
@@ -76,9 +102,29 @@ class _AddReviewPageState extends State<AddReviewPage> {
   Future<Map<String, dynamic>?> _getUserFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // Try to get user data as JSON string first
       final userString = prefs.getString('user');
       if (userString != null) {
         return jsonDecode(userString);
+      }
+
+      // Fallback: try to get individual user data fields
+      final userId = prefs.getInt('userId');
+      final name = prefs.getString('name');
+      final userEmail = prefs.getString('userEmail');
+      final userImage = prefs.getString('userImage');
+      final username = prefs.getString('username');
+
+      if (userId != null) {
+        return {
+          'userId': userId,
+          'id': userId, // untuk backward compatibility
+          'name': name ?? 'Unknown User',
+          'email': userEmail,
+          'image': userImage,
+          'username': username ?? 'unknown',
+        };
       }
     } catch (error) {
       print('Error getting user from storage: $error');
@@ -106,8 +152,15 @@ class _AddReviewPageState extends State<AddReviewPage> {
     try {
       // Get user dari storage
       final user = await _getUserFromStorage();
-      if (user == null || user['userId'] == null) {
+      if (user == null || (user['userId'] == null && user['id'] == null)) {
         _showErrorDialog('Silakan login untuk memberikan review');
+        return;
+      }
+
+      // Get userId - try both possible field names
+      final userId = user['userId'] ?? user['id'];
+      if (userId == null) {
+        _showErrorDialog('Data user tidak valid. Silakan login ulang.');
         return;
       }
 
@@ -121,7 +174,7 @@ class _AddReviewPageState extends State<AddReviewPage> {
 
       // Submit review
       final result = await ReviewService.postReview(
-        userId: user['userId'],
+        userId: userId,
         orderId: widget.orderId,
         ticketId: _orderDetails?['ticketId'] ?? 0,
         rating: _rating,
@@ -166,24 +219,31 @@ class _AddReviewPageState extends State<AddReviewPage> {
         title: const Text('Berhasil'),
         content: const Text('Review berhasil dikirim!'),
         actions: [
+          // Opsi 1: Ke History (default)
           TextButton(
             onPressed: () {
               Navigator.pop(context); // Close dialog
-              // Navigate to detail page or back
-              if (_orderDetails?['ticketId'] != null) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HistoryPage()),
+                (route) => false,
+              );
+            },
+            child: const Text('Lihat History'),
+          ),
+
+          // Opsi 2: Ke Detail (opsional)
+          if (_orderDetails?['ticketId'] != null)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
                 Navigator.pushReplacementNamed(
                   context,
                   '/detail/${_orderDetails!['ticketId']}',
                 );
-              } else {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ReviewPage()),
-                );
-              }
-            },
-            child: const Text('OK'),
-          ),
+              },
+              child: const Text('Lihat Detail'),
+            ),
         ],
       ),
     );
@@ -320,32 +380,56 @@ class _AddReviewPageState extends State<AddReviewPage> {
                     if (_userDetails != null) ...[
                       Row(
                         children: [
-                          CircleAvatar(
-                            backgroundImage: _userDetails!['image'] != null
-                                ? NetworkImage(_userDetails!['image'])
-                                : const AssetImage(
-                                        'assets/images/default-user.jpg')
-                                    as ImageProvider,
-                            radius: 24,
-                            onBackgroundImageError: (_, __) {},
-                            child: _userDetails!['image'] == null
-                                ? const Icon(Icons.person, size: 24)
-                                : null,
-                          ),
+                          _buildUserAvatar(),
                           const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _userDetails!['name'] ?? 'Unknown User',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  '@${_userDetails!['username'] ?? 'unknown'}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      // Loading user data indicator
+                      const Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 24,
+                            backgroundColor: Colors.grey,
+                            child: Icon(Icons.person,
+                                size: 24, color: Colors.white),
+                          ),
+                          SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _userDetails!['name'] ?? 'Unknown User',
-                                style: const TextStyle(
+                                'Loading user data...',
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
                               Text(
-                                '@${_userDetails!['username'] ?? 'unknown'}',
-                                style: const TextStyle(
+                                '@loading',
+                                style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.black54,
                                 ),
@@ -508,6 +592,28 @@ class _AddReviewPageState extends State<AddReviewPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildUserAvatar() {
+    final imageUrl = _userDetails?['image'];
+    final hasValidImage = imageUrl != null && imageUrl.toString().isNotEmpty;
+
+    if (hasValidImage) {
+      return CircleAvatar(
+        backgroundImage: NetworkImage(imageUrl),
+        radius: 24,
+        backgroundColor: Colors.grey.shade300,
+        onBackgroundImageError: (_, __) {
+          // Handle image loading error silently
+        },
+      );
+    } else {
+      return CircleAvatar(
+        radius: 24,
+        backgroundColor: Colors.grey.shade300,
+        child: const Icon(Icons.person, size: 24, color: Colors.grey),
+      );
+    }
   }
 
   String _formatDate(String? dateString) {
