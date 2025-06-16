@@ -49,7 +49,6 @@ class _TopUpPageState extends State<TopUpPage> {
         });
       } else {
         print('No userId found in SharedPreferences.');
-        // Redirect ke login page jika perlu
       }
     } catch (e) {
       print('Gagal memuat user: $e');

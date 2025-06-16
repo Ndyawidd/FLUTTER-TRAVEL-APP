@@ -32,7 +32,6 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
       final fetchedReviews =
           await ReviewService.getReviewsByTicketId(widget.ticketId);
 
-      // Tambahkan base URL jika image hanya path
       final adjustedReviews = fetchedReviews.map((review) {
         if (review.image != null &&
             review.image!.isNotEmpty &&
@@ -70,7 +69,6 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
   Widget _buildReviewImage(String? image) {
     if (image == null || image.isEmpty) return const SizedBox();
 
-    // Jika base64
     if (image.startsWith('data:image') || image.contains('base64,')) {
       final base64Str = image.split(',').last;
       return Image.memory(
@@ -82,7 +80,6 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
       );
     }
 
-    // Jika path file lokal (hanya jika menggunakan File)
     if (image.startsWith('/')) {
       final file = File(image);
       return Image.file(
@@ -94,7 +91,6 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
       );
     }
 
-    // Jika URL
     return Image.network(
       image,
       width: double.infinity,
@@ -118,7 +114,6 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -154,9 +149,13 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("All Review"),
+        title: const Text("Semua Review",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            )),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: Color(0xFF154BCB),
         centerTitle: true,
         elevation: 0,
       ),

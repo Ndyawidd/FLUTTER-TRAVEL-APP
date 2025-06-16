@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart'; // Import LatLng
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapPage extends StatefulWidget {
   final LatLng locLang;
@@ -13,7 +13,6 @@ class MapPage extends StatefulWidget {
 class _MapPageState extends State<MapPage> {
   late GoogleMapController mapController;
 
-  // Fungsi untuk menangani peta ketika siap
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
   }
@@ -30,15 +29,14 @@ class _MapPageState extends State<MapPage> {
       body: GoogleMap(
         onMapCreated: _onMapCreated,
         initialCameraPosition: CameraPosition(
-          target: widget.locLang, // Menggunakan koordinat yang diteruskan
-          zoom: 12.0, // Zoom level untuk tampilan awal peta
+          target: widget.locLang,
+          zoom: 12.0,
         ),
         markers: {
           Marker(
             markerId: MarkerId('destination'),
-            position: widget.locLang, // Menandakan lokasi pada peta
-            infoWindow: InfoWindow(
-                title: 'Destination'), // Menampilkan teks pada marker
+            position: widget.locLang,
+            infoWindow: InfoWindow(title: 'Destination'),
           ),
         },
       ),
