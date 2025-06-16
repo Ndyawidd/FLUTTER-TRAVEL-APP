@@ -7,6 +7,12 @@ import 'reviews_list.dart';
 import 'package:travel_app/services/ticket_service.dart';
 import 'package:travel_app/services/review_service.dart';
 
+const kPrimaryBlue = Color(0xFF154BCB);
+const kSecondaryOrange = Color(0xFFFF8500);
+const kCardBgColor = Color(0xFFF8F9FA);
+const kBorderColor = Color(0xFFE5E7EB);
+const kTextGrey = Color(0xFF6B7280);
+
 class DestinationDetailPage extends StatefulWidget {
   final Ticket ticket;
 
@@ -28,9 +34,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
   }
 
   Future<void> _loadReviews() async {
-    setState(() {
-      isLoadingReviews = true;
-    });
+    setState(() => isLoadingReviews = true);
 
     try {
       final fetchedReviews =
@@ -44,9 +48,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
         isLoadingReviews = false;
       });
     } catch (e) {
-      setState(() {
-        isLoadingReviews = false;
-      });
+      setState(() => isLoadingReviews = false);
       print('Error loading reviews: $e');
     }
   }
@@ -59,20 +61,11 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
     );
 
     if (price is String) {
-      final numPrice = double.tryParse(price) ?? 0;
-      return formatter.format(numPrice);
+      return formatter.format(double.tryParse(price) ?? 0);
     } else if (price is num) {
       return formatter.format(price);
     }
     return 'Rp 0';
-  }
-
-  String _getStarDisplay(int rating) {
-    return '⭐' * rating + '☆' * (5 - rating);
-  }
-
-  String _formatDate(DateTime date) {
-    return DateFormat('dd/MM/yyyy').format(date);
   }
 
   Widget _buildReviewCard(Review review) {
@@ -80,8 +73,9 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F1F6),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,20 +83,43 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(
-                  "${_getStarDisplay(review.rating)} ${review.rating}/5 - ${review.userName}",
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+              Row(
+                children: [
+                  ...List.generate(
+                      5,
+                      (index) => Icon(
+                            index < review.rating
+                                ? Icons.star
+                                : Icons.star_border,
+                            size: 14,
+                            color: kSecondaryOrange,
+                          )),
+                  const SizedBox(width: 8),
+                  Text(
+                    review.userName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
               Text(
-                _formatDate(review.createdAt),
-                style: const TextStyle(fontSize: 10, color: Colors.grey),
+                DateFormat('dd/MM/yy').format(review.createdAt),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: kTextGrey,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(review.comment, style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 6),
+          Text(
+            review.comment,
+            style: const TextStyle(fontSize: 13),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -111,241 +128,311 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Destination Detail"),
+        title: const Text(
+          "Detail Destinasi",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: kPrimaryBlue,
+          ),
+        ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: Colors.black87,
         elevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  widget.ticket.image,
-                  width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.broken_image, size: 100),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                Expanded(
-                  child: Text(
-                    widget.ticket.name,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    widget.ticket.image,
+                    width: double.infinity,
+                    height: 140,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 140,
+                      color: kCardBgColor,
+                      child: Icon(Icons.broken_image, color: kTextGrey),
+                    ),
                   ),
                 ),
-                Text(
-                  _formatPrice(widget.ticket.price),
-                  style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                Expanded(
-                  child: Text(widget.ticket.location,
-                      style: const TextStyle(color: Colors.grey)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE7F1F6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(children: [
-                    const Icon(Icons.star),
-                    isLoadingReviews
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            "${averageRating.toStringAsFixed(1)}\n${reviews.length} Reviews",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 12),
-                          )
-                  ]),
-                  Column(children: [
-                    const Icon(Icons.group), // Icon for capacity
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.ticket.name,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on,
+                                  size: 12, color: kTextGrey),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  widget.ticket.location,
+                                  style:
+                                      TextStyle(color: kTextGrey, fontSize: 11),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
-                      "${widget.ticket.capacity}\nCapacity", // Display capacity
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
+                      _formatPrice(widget.ticket.price),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: kSecondaryOrange,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kCardBgColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.star,
+                                  color: kSecondaryOrange, size: 16),
+                              const SizedBox(width: 4),
+                              isLoadingReviews
+                                  ? const SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 1.5),
+                                    )
+                                  : Text(
+                                      "${averageRating.toStringAsFixed(1)} (${reviews.length})",
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ],
+                          ),
+                        ),
+                        Container(width: 1, height: 20, color: kBorderColor),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.group, color: kPrimaryBlue, size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                "${widget.ticket.capacity} orang",
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Deskripsi",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.ticket.description,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.4,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Review",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (reviews.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ReviewsListPage(
+                                  ticketId: widget.ticket.ticketId,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "Lihat Semua",
+                            style: TextStyle(
+                              color: kPrimaryBlue,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (isLoadingReviews)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
-                  ]),
+                  else if (reviews.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: kCardBgColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          "Belum ada review",
+                          style: TextStyle(color: kTextGrey, fontSize: 13),
+                        ),
+                      ),
+                    )
+                  else
+                    Column(
+                      children: reviews.take(3).map(_buildReviewCard).toList(),
+                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              widget.ticket.description,
-              style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              spreadRadius: 0,
+              blurRadius: 10,
+              offset: const Offset(0, -2),
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Reviews",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                if (!isLoadingReviews)
-                  TextButton(
-                    onPressed: () {
-                      _loadReviews();
-                    },
-                    child: const Text("Refresh"),
-                  ),
-                TextButton(
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ReviewsListPage(
-                          ticketId: widget.ticket.ticketId,
+                        builder: (context) => MapPage(
+                          locLang: LatLng(
+                              widget.ticket.latitude, widget.ticket.longitude),
                         ),
                       ),
                     );
                   },
-                  child: const Text("See More"),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (isLoadingReviews)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (reviews.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE7F1F6),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: Text(
-                    "Belum ada review untuk destinasi ini",
-                    style: TextStyle(color: Colors.grey),
+                  icon: const Icon(Icons.map_outlined, size: 18),
+                  label: const Text("Peta", style: TextStyle(fontSize: 14)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: kBorderColor),
+                    foregroundColor: Colors.black87,
+                    minimumSize: const Size(0, 44),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
-              )
-            else
-              Column(
-                children: [
-                  ...reviews.take(4).map(_buildReviewCard),
-                  if (reviews.length > 4)
-                    TextButton(
-                      onPressed: () {
-                        _showAllReviews(context);
-                      },
-                      child: Text("Lihat semua ${reviews.length} review"),
-                    ),
-                ],
               ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MapPage(
-                            locLang: LatLng(widget.ticket.latitude,
-                                widget.ticket.longitude),
-                          ),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: Color(0xFF1F509A), width: 2.0),
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1F509A),
-                    ),
-                    child: const Text("Map"),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              BookingPage(ticketId: widget.ticket.ticketId),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1F509A),
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text("Book Ticket"),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAllReviews(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              const Text(
-                "Semua Review",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(width: 12),
               Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  itemCount: reviews.length,
-                  itemBuilder: (context, index) {
-                    return _buildReviewCard(reviews[index]);
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            BookingPage(ticketId: widget.ticket.ticketId),
+                      ),
+                    );
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryBlue,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(0, 44),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    "Pesan Tiket",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ],

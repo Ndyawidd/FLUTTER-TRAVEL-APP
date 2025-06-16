@@ -12,7 +12,7 @@ class TopUpPage extends StatefulWidget {
 class _TopUpPageState extends State<TopUpPage> {
   final TextEditingController _controller = TextEditingController();
   int? userId;
-  double currentBalance = 0; // Ubah ke double untuk konsistensi
+  double currentBalance = 0;
 
   @override
   void initState() {
@@ -23,7 +23,7 @@ class _TopUpPageState extends State<TopUpPage> {
   Future<void> _loadUser() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final storedUserId = prefs.getInt('userId'); // langsung ambil int
+      final storedUserId = prefs.getInt('userId');
 
       print('UserId from SharedPreferences: $storedUserId');
 
@@ -38,7 +38,6 @@ class _TopUpPageState extends State<TopUpPage> {
         });
       } else {
         print('No userId found in SharedPreferences.');
-        // Tambahkan alert/snackbar/redirect kalau perlu
       }
     } catch (e) {
       print('Gagal memuat user: $e');
@@ -55,12 +54,6 @@ class _TopUpPageState extends State<TopUpPage> {
   Future<void> _handleTopUp() async {
     final rawAmount = _controller.text.replaceAll(RegExp(r'\D'), '');
     final amount = int.tryParse(rawAmount);
-
-    // Debug print untuk troubleshooting
-    print('userId: $userId');
-    print('rawAmount: $rawAmount');
-    print('amount: $amount');
-    print('currentBalance: $currentBalance');
 
     if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(

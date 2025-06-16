@@ -139,25 +139,6 @@ class _DestinationCardState extends State<DestinationCard> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // if (isLoadingRating)
-                      //   const SizedBox(
-                      //     width: 12,
-                      //     height: 12,
-                      //     child: CircularProgressIndicator(
-                      //       strokeWidth: 2,
-                      //     ),
-                      //   )
-                      // else
-                      //   Expanded(
-                      //     child: Text(
-                      //       averageRating == 0.0
-                      //           ? "No rating yet"
-                      //           : "${averageRating.toStringAsFixed(1)} ($reviewCount reviews)",
-                      //       style: const TextStyle(fontSize: 12),
-                      //       maxLines: 1,
-                      //       overflow: TextOverflow.ellipsis,
-                      //     ),
-                      //   ),
                     ],
                   ),
                 ],
