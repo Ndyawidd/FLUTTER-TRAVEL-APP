@@ -851,7 +851,10 @@ class _ProfilePageState extends State<ProfilePage>
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.blue.shade600, Colors.blue.shade400],
+              colors: [
+                const Color.fromARGB(255, 255, 255, 255),
+                const Color.fromARGB(255, 255, 255, 255)
+              ],
             ),
           ),
           child: const Center(
@@ -859,13 +862,13 @@ class _ProfilePageState extends State<ProfilePage>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
                 ),
                 SizedBox(height: 20),
                 Text(
                   'Memuat profil...',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Colors.blueAccent,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
