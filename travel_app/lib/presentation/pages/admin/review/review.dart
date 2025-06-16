@@ -1340,7 +1340,7 @@ class _ReviewManagementPageState extends State<ReviewManagementPage> {
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacementNamed(context, '/admin/ticket');
-          } else if (index == 2) {
+          } else if (index == 1) {
             Navigator.pushReplacementNamed(context, '/admin/order');
           }
         },
