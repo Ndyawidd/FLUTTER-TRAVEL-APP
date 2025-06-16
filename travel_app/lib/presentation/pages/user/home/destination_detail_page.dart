@@ -68,9 +68,14 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
     return 'Rp 0';
   }
 
+  String _getStarDisplay(int rating) {
+    return '★' * rating + '☆' * (5 - rating);
+  }
+
   Widget _buildReviewCard(Review review) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      width: 250,
+      margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -83,26 +88,11 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  ...List.generate(
-                      5,
-                      (index) => Icon(
-                            index < review.rating
-                                ? Icons.star
-                                : Icons.star_border,
-                            size: 14,
-                            color: kSecondaryOrange,
-                          )),
-                  const SizedBox(width: 8),
-                  Text(
-                    review.userName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
+              Expanded(
+                child: Text(
+                  "${_getStarDisplay(review.rating)} ${review.rating}/5",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               Text(
                 DateFormat('dd/MM/yy').format(review.createdAt),
@@ -113,12 +103,21 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
-            review.comment,
-            style: const TextStyle(fontSize: 13),
-            maxLines: 2,
+            review.userName,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Expanded(
+            child: Text(
+              review.comment,
+              style: const TextStyle(fontSize: 12),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -345,21 +344,29 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                     )
                   else if (reviews.isEmpty)
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      height: 120,
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: kCardBgColor,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
                         child: Text(
-                          "Belum ada review",
+                          "Belum ada review untuk destinasi ini",
                           style: TextStyle(color: kTextGrey, fontSize: 13),
                         ),
                       ),
                     )
                   else
-                    Column(
-                      children: reviews.take(3).map(_buildReviewCard).toList(),
+                    SizedBox(
+                      height: 120,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: reviews.length,
+                        itemBuilder: (context, index) {
+                          return _buildReviewCard(reviews[index]);
+                        },
+                      ),
                     ),
                 ],
               ),

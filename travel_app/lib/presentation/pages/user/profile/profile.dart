@@ -12,10 +12,14 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage>
+    with TickerProviderStateMixin {
   int? userId;
   bool isLoading = true;
   bool isRefreshing = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   String name = '';
   String username = '';
@@ -27,7 +31,26 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+        parent: _animationController, curve: Curves.easeOutCubic));
+
     _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   String formatCurrency(double amount) {
@@ -69,12 +92,10 @@ class _ProfilePageState extends State<ProfilePage> {
       if (_isValidUserData(user)) {
         await _updateUserData(user);
       } else {
-        // Try fallback from SharedPreferences
         await _loadFromSharedPreferences();
       }
     } catch (e) {
       debugPrint('Error fetching user details: $e');
-      // Try fallback from SharedPreferences
       await _loadFromSharedPreferences();
     } finally {
       if (mounted) {
@@ -82,6 +103,7 @@ class _ProfilePageState extends State<ProfilePage> {
           isLoading = false;
           isRefreshing = false;
         });
+        _animationController.forward();
       }
     }
   }
@@ -106,7 +128,6 @@ class _ProfilePageState extends State<ProfilePage> {
       balance = (user.balance ?? 0.0).toDouble();
     });
 
-    // Update SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user', json.encode(user.toJson()));
   }
@@ -140,7 +161,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _handleAuthError(String message) {
     if (!mounted) return;
-
     _showErrorDialog(message, onConfirm: _redirectToLogin);
   }
 
@@ -168,8 +188,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _handleLogout() async {
     final confirmed = await _showConfirmDialog(
-      'Confirm Logout',
-      'Are you sure you want to logout?',
+      'Konfirmasi Logout',
+      'Apakah Anda yakin ingin keluar dari akun ini?',
+      confirmText: 'Logout',
+      cancelText: 'Batal',
     );
 
     if (!confirmed) return;
@@ -181,7 +203,7 @@ class _ProfilePageState extends State<ProfilePage> {
       await prefs.clear();
 
       if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(context).pop();
         Navigator.of(context).pushNamedAndRemoveUntil(
           '/login',
           (route) => false,
@@ -190,8 +212,8 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       debugPrint('Error during logout: $e');
       if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        _showErrorDialog('Failed to logout. Please try again.');
+        Navigator.of(context).pop();
+        _showErrorDialog('Gagal logout. Silakan coba lagi.');
       }
     }
   }
@@ -200,9 +222,10 @@ class _ProfilePageState extends State<ProfilePage> {
     if (userId == null || userId! <= 0) return;
 
     final confirmed = await _showConfirmDialog(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
-      confirmText: 'Delete',
+      'Hapus Akun',
+      'Apakah Anda yakin ingin menghapus akun ini? Tindakan ini tidak dapat dibatalkan.',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
       isDestructive: true,
     );
 
@@ -217,8 +240,8 @@ class _ProfilePageState extends State<ProfilePage> {
       await prefs.clear();
 
       if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        _showSuccessDialog('Account deleted successfully.', onConfirm: () {
+        Navigator.of(context).pop();
+        _showSuccessDialog('Akun berhasil dihapus.', onConfirm: () {
           Navigator.of(context).pushNamedAndRemoveUntil(
             '/login',
             (route) => false,
@@ -228,8 +251,8 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       debugPrint('Failed to delete user: $e');
       if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
-        _showErrorDialog('Failed to delete account: ${e.toString()}');
+        Navigator.of(context).pop();
+        _showErrorDialog('Gagal menghapus akun: ${e.toString()}');
       }
     }
   }
@@ -268,13 +291,18 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 16),
-            Text('Please wait...'),
-          ],
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Text('Mohon tunggu...', style: TextStyle(fontSize: 16)),
+            ],
+          ),
         ),
       ),
     );
@@ -283,8 +311,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<bool> _showConfirmDialog(
     String title,
     String message, {
-    String confirmText = 'Confirm',
-    String cancelText = 'Cancel',
+    String confirmText = 'Konfirmasi',
+    String cancelText = 'Batal',
     bool isDestructive = false,
   }) async {
     if (!mounted) return false;
@@ -292,22 +320,34 @@ class _ProfilePageState extends State<ProfilePage> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text(title),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(title,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
             content: Text(message),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text(cancelText),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text(
-                  confirmText,
-                  style: TextStyle(
-                    color: isDestructive ? Colors.red : null,
-                    fontWeight: FontWeight.w600,
-                  ),
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 ),
+                child: Text(
+                  cancelText,
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDestructive ? Colors.red : Colors.blue,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(confirmText),
               ),
             ],
           ),
@@ -321,14 +361,27 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Error'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 24),
+            SizedBox(width: 8),
+            Text('Error', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Text(message),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               onConfirm?.call();
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('OK'),
           ),
         ],
@@ -342,14 +395,27 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Success'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.green, size: 24),
+            SizedBox(width: 8),
+            Text('Berhasil', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Text(message),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
               onConfirm?.call();
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             child: const Text('OK'),
           ),
         ],
@@ -358,22 +424,108 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   // UI Builder Methods
+  Widget _buildProfileHeader() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.blue.shade600,
+            Colors.blue.shade400,
+            Colors.cyan.shade300,
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Profile',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  // IconButton(
+                  //   onPressed: _refreshData,
+                  //   icon: isRefreshing
+                  //       ? const SizedBox(
+                  //           width: 24,
+                  //           height: 24,
+                  //           child: CircularProgressIndicator(
+                  //             strokeWidth: 2,
+                  //             valueColor:
+                  //                 AlwaysStoppedAnimation<Color>(Colors.white),
+                  //           ),
+                  //         )
+                  //       : const Icon(Icons.refresh,
+                  //           color: Colors.white, size: 28),
+                  //   tooltip: 'Refresh Data',
+                  // ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              _buildProfileImage(),
+              const SizedBox(height: 20),
+              Text(
+                name.isEmpty ? 'Nama tidak tersedia' : name,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '@${username.isEmpty ? "username" : username}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileImage() {
-    return Center(
+    return Hero(
+      tag: 'profile_image',
       child: Container(
         width: 120,
         height: 120,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(
-            color: Colors.blue.shade500,
-            width: 3,
-          ),
+          border: Border.all(color: Colors.white, width: 4),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -410,7 +562,11 @@ class _ProfilePageState extends State<ProfilePage> {
           height: 120,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            );
           },
           errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
         );
@@ -423,14 +579,111 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       width: 120,
       height: 120,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+      decoration: const BoxDecoration(
+        color: Colors.white,
         shape: BoxShape.circle,
       ),
       child: Icon(
         Icons.person,
         size: 60,
-        color: Colors.grey.shade500,
+        color: Colors.blue.shade300,
+      ),
+    );
+  }
+
+  Widget _buildInfoSection() {
+    return Container(
+      margin: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          _buildBalanceCard(),
+          const SizedBox(height: 20),
+          _buildInfoCard(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.orange.shade400, Colors.orange.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.shade200.withOpacity(0.6),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Saldo Anda',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    formatCurrency(balance),
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: IconButton(
+                  onPressed: _navigateToTopUp,
+                  icon: const Icon(Icons.add, color: Colors.white, size: 28),
+                  tooltip: 'Top Up Saldo',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _navigateToTopUp,
+              icon: const Icon(Icons.account_balance_wallet, size: 20),
+              label: const Text('Top Up Saldo',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.orange.shade600,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -438,36 +691,146 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildInfoCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoField('Username', username, Icons.alternate_email),
-          const SizedBox(height: 16),
-          _buildInfoField('Full Name', name, Icons.person),
-          const SizedBox(height: 16),
-          _buildInfoField('Email', email, Icons.email),
+          const Text(
+            'Informasi Akun',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
           const SizedBox(height: 20),
+          _buildInfoField('Email', email, Icons.email_outlined, Colors.blue),
+          const SizedBox(height: 16),
+          _buildInfoField(
+              'Username', username, Icons.alternate_email, Colors.purple),
+          const SizedBox(height: 16),
+          // _buildInfoField('Role', role.isEmpty ? 'User' : role,
+          //     Icons.person_outline, Colors.green),
+          // const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _navigateToEditProfile,
-              icon: const Icon(Icons.edit, size: 18),
-              label: const Text('Edit Profile'),
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              label: const Text('Edit Profil',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue.shade600,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoField(
+      String label, String value, IconData icon, Color iconColor) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: iconColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: iconColor.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 20, color: iconColor),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value.isEmpty ? 'Belum diatur' : value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color:
+                        value.isEmpty ? Colors.grey.shade400 : Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _handleLogout,
+              icon: const Icon(Icons.logout_outlined, size: 20),
+              label: const Text('Logout',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _handleDeleteAccount,
+              icon: const Icon(Icons.delete_outline, size: 20),
+              label: const Text('Hapus Akun',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: BorderSide(color: Colors.red.shade300, width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -479,190 +842,63 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildInfoField(String label, String value, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value.isEmpty ? 'Not set' : value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: value.isEmpty ? Colors.grey.shade400 : Colors.black87,
-                ),
-              ),
-            ],
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                const Color.fromARGB(255, 255, 255, 255),
+                const Color.fromARGB(255, 255, 255, 255)
+              ],
+            ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBalanceCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade600, Colors.blue.shade400],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.shade200.withOpacity(0.5),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
+          child: const Center(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Your Balance',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.blue.shade100,
-                    fontWeight: FontWeight.w500,
-                  ),
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 20),
                 Text(
-                  formatCurrency(balance),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  'Memuat profil...',
+                  style: TextStyle(
+                    color: Colors.blueAccent,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
           ),
-          FloatingActionButton(
-            onPressed: _navigateToTopUp,
-            backgroundColor: Colors.orange.shade500,
-            heroTag: "topup_fab",
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _handleLogout,
-            icon: const Icon(Icons.logout, size: 18),
-            label: const Text('Logout'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange.shade600,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _handleDeleteAccount,
-            icon: const Icon(Icons.delete_forever, size: 18),
-            label: const Text('Delete Account'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
         ),
       );
     }
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E40AF),
-          ),
-        ),
-        // actions: [
-        //   IconButton(
-        //     onPressed: _refreshData,
-        //     icon: isRefreshing
-        //         ? const SizedBox(
-        //             width: 20,
-        //             height: 20,
-        //             child: CircularProgressIndicator(strokeWidth: 2),
-        //           )
-        //         : const Icon(Icons.refresh),
-        //     tooltip: 'Refresh',
-        //   ),
-        // ],
-      ),  
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _refreshData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                _buildProfileImage(),
-                const SizedBox(height: 24),
-                _buildInfoCard(),
-                const SizedBox(height: 20),
-                _buildBalanceCard(),
-                const SizedBox(height: 20),
-                _buildActionButtons(),
-                const SizedBox(height: 20),
-              ],
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: RefreshIndicator(
+            onRefresh: _refreshData,
+            color: Colors.blue.shade600,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildProfileHeader(),
+                  _buildInfoSection(),
+                  _buildActionButtons(),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
