@@ -11,8 +11,42 @@ import 'presentation/pages/admin/review/review.dart';
 import 'presentation/pages/admin/ticket/ticket.dart';
 import 'presentation/pages/user/history/history.dart';
 import 'presentation/pages/user/home/reviews_list.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// import 'presentation/pages/user/home/home.dart'; // Or your initial page
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notifications
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const DarwinInitializationSettings initializationSettingsIOS =
+      DarwinInitializationSettings(
+    requestAlertPermission: true,
+    requestBadgePermission: true,
+    requestSoundPermission: true,
+  );
+
+  const InitializationSettings initializationSettings = InitializationSettings(
+    android: initializationSettingsAndroid,
+    iOS: initializationSettingsIOS,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) async {
+      // Handle notification taps here if needed
+      if (notificationResponse.payload != null) {
+        debugPrint('notification payload: ${notificationResponse.payload}');
+        // You could navigate to a specific page based on the payload
+      }
+    },
+  );
+
   await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }

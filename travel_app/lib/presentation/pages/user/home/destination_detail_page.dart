@@ -77,7 +77,8 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
 
   Widget _buildReviewCard(Review review) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      width: 250, // Tetapkan lebar untuk setiap kartu review
+      margin: const EdgeInsets.only(right: 12), // Jarak antar kartu
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFE7F1F6),
@@ -91,7 +92,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
             children: [
               Expanded(
                 child: Text(
-                  "${_getStarDisplay(review.rating)} ${review.rating}/5 - ${review.userName}",
+                  "${_getStarDisplay(review.rating)} ${review.rating}/5",
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -102,7 +103,21 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
             ],
           ),
           const SizedBox(height: 4),
-          Text(review.comment, style: const TextStyle(fontSize: 12)),
+          Text(
+            review.userName,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            maxLines: 1, // Batasi satu baris untuk nama pengguna
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Expanded( // Gunakan Expanded untuk memastikan teks ulasan tidak meluap
+            child: Text(
+              review.comment,
+              style: const TextStyle(fontSize: 12),
+              maxLines: 3, // Batasi jumlah baris untuk komentar
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
@@ -143,16 +158,14 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                 Expanded(
                   child: Text(
                     widget.ticket.name,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                    style:
+                        const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Text(
                   _formatPrice(widget.ticket.price),
                   style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red),
+                      fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
                 ),
               ],
             ),
@@ -198,6 +211,11 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                       style: const TextStyle(fontSize: 12),
                     )
                   ]),
+                  Column(children: const [
+                    Icon(Icons.favorite),
+                    Text("123\nWishlists",
+                        textAlign: TextAlign.center, style: TextStyle(fontSize: 12))
+                  ]),
                 ],
               ),
             ),
@@ -208,34 +226,27 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
             ),
             const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Reviews",
-                    style:
-                        TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                if (!isLoadingReviews)
-                  TextButton(
-                    onPressed: () {
-                      _loadReviews();
-                    },
-                    child: const Text("Refresh"),
-                  ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ReviewsListPage(
-                          ticketId: widget.ticket.ticketId,
-                        ),
-                      ),
-                    );
-                  },
-                  child: const Text("See More"),
-                ),
-              ],
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    const Text("Reviews",
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+    TextButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReviewsListPage(
+              ticketId: widget.ticket.ticketId,
             ),
+          ),
+        );
+      },
+      child: const Text("See More"),
+    ),
+  ],
+),
             const SizedBox(height: 8),
+            // START OF HORIZONTAL SCROLL REVIEW WIDGET
             if (isLoadingReviews)
               const Center(
                 child: Padding(
@@ -245,6 +256,7 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
               )
             else if (reviews.isEmpty)
               Container(
+                height: 120, // Tetapkan tinggi untuk menampilkan pesan
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE7F1F6),
@@ -258,18 +270,17 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                 ),
               )
             else
-              Column(
-                children: [
-                  ...reviews.take(4).map(_buildReviewCard),
-                  if (reviews.length > 4)
-                    TextButton(
-                      onPressed: () {
-                        _showAllReviews(context);
-                      },
-                      child: Text("Lihat semua ${reviews.length} review"),
-                    ),
-                ],
+              SizedBox(
+                height: 120, // Atur tinggi sesuai kebutuhan untuk kartu review
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: reviews.length,
+                  itemBuilder: (context, index) {
+                    return _buildReviewCard(reviews[index]);
+                  },
+                ),
               ),
+            // END OF HORIZONTAL SCROLL REVIEW WIDGET
             const SizedBox(height: 24),
             Row(
               children: [
