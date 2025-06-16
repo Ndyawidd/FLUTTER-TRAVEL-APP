@@ -57,39 +57,59 @@ class _DestinationTabBarState extends State<DestinationTabBar>
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 0,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
+            spreadRadius: 0,
           ),
         ],
       ),
       child: Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(6),
         child: TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          padding: EdgeInsets.zero,
           indicator: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+                spreadRadius: 0,
+              ),
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+                spreadRadius: 0,
               ),
             ],
           ),
-          indicatorPadding: EdgeInsets.zero,
+          indicatorPadding: const EdgeInsets.all(2),
+          indicatorSize: TabBarIndicatorSize.tab,
           dividerColor: Colors.transparent,
-          labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+          splashFactory: NoSplash.splashFactory,
+          overlayColor: MaterialStateProperty.all(Colors.transparent),
+          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
           tabs: sortOptions.map((option) {
-            bool isSelected = sortOptions[_tabController.index] == option;
+            int currentIndex = sortOptions.indexOf(option);
+            bool isSelected = _tabController.index == currentIndex;
 
             IconData icon;
             switch (option) {
@@ -110,25 +130,34 @@ class _DestinationTabBarState extends State<DestinationTabBar>
             }
 
             return Tab(
+              height: 44,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+                  horizontal: 20,
+                  vertical: 10,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      icon,
-                      size: 18,
-                      color: isSelected
-                          ? const Color(0xFF2196F3)
-                          : Colors.grey.shade600,
+                    AnimatedScale(
+                      scale: isSelected ? 1.1 : 1.0,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOutCubic,
+                      child: Icon(
+                        icon,
+                        size: 18,
+                        color: isSelected
+                            ? const Color(0xFF2196F3)
+                            : Colors.grey.shade600,
+                      ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      option,
+                    const SizedBox(width: 8),
+                    AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeInOutCubic,
                       style: TextStyle(
                         color: isSelected
                             ? const Color(0xFF2196F3)
@@ -136,7 +165,9 @@ class _DestinationTabBarState extends State<DestinationTabBar>
                         fontWeight:
                             isSelected ? FontWeight.w600 : FontWeight.w500,
                         fontSize: 14,
+                        letterSpacing: isSelected ? 0.2 : 0,
                       ),
+                      child: Text(option),
                     ),
                   ],
                 ),

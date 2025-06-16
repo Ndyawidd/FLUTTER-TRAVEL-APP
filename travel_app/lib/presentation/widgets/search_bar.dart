@@ -1,3 +1,4 @@
+// lib/presentation/widgets/search_bar.dart
 import 'package:flutter/material.dart';
 
 const kPrimaryBlue = Color(0xFF154BCB);
@@ -28,6 +29,7 @@ class SearchBarWidget extends StatefulWidget {
 class _SearchBarWidgetState extends State<SearchBarWidget> {
   late TextEditingController _controller;
   bool _isUsingExternalController = false;
+  FocusNode _focusNode = FocusNode(); // Mengelola fokus TextField di sini
 
   @override
   void initState() {
@@ -35,6 +37,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
 
     if (widget.controller != null) {
       _controller = widget.controller!;
+      // FIX: Changed from _isUsingExternalExternalController to _isUsingExternalController
       _isUsingExternalController = true;
     } else {
       _controller = TextEditingController(text: widget.initialValue ?? '');
@@ -42,11 +45,16 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     }
 
     _controller.addListener(_onTextChanged);
+    _focusNode.addListener(
+        _onFocusChanged); // Menambahkan listener untuk perubahan fokus
   }
 
   @override
   void dispose() {
     _controller.removeListener(_onTextChanged);
+    _focusNode.removeListener(_onFocusChanged); // Hapus listener
+    _focusNode
+        .dispose(); // Sangat penting: Buang FocusNode untuk mencegah memory leak
 
     if (!_isUsingExternalController) {
       _controller.dispose();
@@ -55,12 +63,28 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     super.dispose();
   }
 
+  @override
+  void deactivate() {
+    // Dipanggil ketika widget ini dihapus dari pohon widget,
+    // yang terjadi saat navigasi ke halaman baru dan widget ini tidak lagi aktif di layar.
+    // Ini memastikan fokus dihilangkan saat halaman home tidak lagi di atas stack.
+    if (_focusNode.hasFocus) {
+      // Hanya unfocus jika sedang fokus
+      _focusNode.unfocus(); // Menghilangkan fokus dari TextField ini
+    }
+    super.deactivate();
+  }
+
   void _onTextChanged() {
     if (widget.onSearchChanged != null) {
       widget.onSearchChanged!(_controller.text);
     }
+    setState(() {}); // Untuk memperbarui suffixIcon
+  }
 
-    setState(() {});
+  void _onFocusChanged() {
+    // Logika tambahan jika diperlukan saat fokus berubah,
+    // tetapi tidak perlu memanggil unfocus di sini untuk kasus Anda.
   }
 
   void _clearSearch() {
@@ -68,6 +92,8 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     if (widget.onSearchChanged != null) {
       widget.onSearchChanged!('');
     }
+    setState(() {}); // Memastikan UI diperbarui setelah clear
+    _focusNode.unfocus(); // Tambahkan baris ini untuk menghilangkan fokus!
   }
 
   @override
@@ -87,6 +113,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
       ),
       child: TextField(
         controller: _controller,
+        focusNode: _focusNode, // Memasang FocusNode ke TextField
         decoration: InputDecoration(
           hintText: widget.hintText ?? 'Cari destinasi atau lokasi...',
           hintStyle: TextStyle(
