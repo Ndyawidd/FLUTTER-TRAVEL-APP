@@ -11,12 +11,14 @@ class PaymentPage extends StatefulWidget {
   final int ticketId;
   final String date;
   final int quantity;
+  final int currentCapacity;
 
   const PaymentPage({
     super.key,
     required this.ticketId,
     required this.date,
     this.quantity = 1,
+    required this.currentCapacity,
   });
 
   @override
@@ -77,23 +79,57 @@ class _PaymentPageState extends State<PaymentPage> {
       return;
     }
 
+    if (widget.quantity > widget.currentCapacity) {
+      //
+      ScaffoldMessenger.of(context).showSnackBar(
+        //
+        SnackBar(
+          content: Text(
+              "Requested quantity (${widget.quantity}) exceeds available capacity (${widget.currentCapacity})."), //
+          backgroundColor: Colors.red, //
+        ),
+      );
+      return; //
+    }
+
     final newBalance = balance - subtotal;
+    final newTicketCapacity = widget.currentCapacity - widget.quantity;
 
     try {
       // Update saldo dulu
       await UserService.updateUserBalance(userId!, newBalance);
 
+      print(
+          "DEBUG: Updating ticket capacity from ${widget.currentCapacity} to $newTicketCapacity");
+      final bool capacityUpdateSuccess =
+          await TicketService.updateTicketCapacity(
+        widget.ticketId,
+        newTicketCapacity,
+      );
+
+      if (!capacityUpdateSuccess) {
+        // Rollback balance jika update kapasitas gagal
+        await UserService.updateUserBalance(userId!, balance);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text("Failed to update ticket capacity. Please try again."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       // Simpan order ke database
       final order = Order(
         orderId: "",
         userName: "",
-        ticketTitle: "",
-        image: "",
+        ticketTitle: ticket!.name,
+        image: ticket!.image,
         quantity: widget.quantity,
         totalPrice: subtotal,
         status: "PENDING",
-        userId: userId!, // Pass as int, not string
-        ticketId: widget.ticketId, // Pass as int, not string
+        userId: userId!,
+        ticketId: widget.ticketId,
         date: widget.date,
       );
 
@@ -104,6 +140,10 @@ class _PaymentPageState extends State<PaymentPage> {
       final orderSaved = await OrderService.createOrder(order);
 
       if (orderSaved == null) {
+        await UserService.updateUserBalance(userId!, balance);
+        await TicketService.updateTicketCapacity(
+            widget.ticketId, widget.currentCapacity);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Gagal menyimpan data pesanan."),
@@ -112,6 +152,13 @@ class _PaymentPageState extends State<PaymentPage> {
         );
         return;
       }
+
+      // final bool capacityUpdateSuccess =
+      //     await TicketService.updateTicketCapacity(
+      //   //
+      //   widget.ticketId, //
+      //   newTicketCapacity, //
+      // );
 
       setState(() {
         balance = newBalance;
@@ -129,10 +176,10 @@ class _PaymentPageState extends State<PaymentPage> {
         MaterialPageRoute(builder: (context) => const HomePage()),
       );
     } catch (e) {
-      print("Failed to update balance or create order: $e");
+      print("Failed to process payment: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Payment failed."),
+          content: Text("Payment failed. Please try again."),
           backgroundColor: Colors.red,
         ),
       );

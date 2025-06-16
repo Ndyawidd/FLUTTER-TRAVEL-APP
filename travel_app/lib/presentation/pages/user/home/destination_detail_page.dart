@@ -191,8 +191,22 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                 children: [
                   Column(children: [
                     const Icon(Icons.star),
+                    isLoadingReviews
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            "${averageRating.toStringAsFixed(1)}\n${reviews.length} Reviews",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12),
+                          )
+                  ]),
+                  Column(children: [
+                    const Icon(Icons.group), // Icon for capacity
                     Text(
-                      "${averageRating.toStringAsFixed(1)}\n${reviews.length} Reviews",
+                      "${widget.ticket.capacity}\nCapacity", // Display capacity
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 12),
                     )
@@ -212,25 +226,25 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
             ),
             const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Reviews",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                if (!isLoadingReviews)
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ReviewsListPage(ticketId: widget.ticket.ticketId),
-                        ),
-                      );
-                    },
-                    child: const Text("See More"),
-                  ),
-              ],
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    const Text("Reviews",
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+    TextButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReviewsListPage(
+              ticketId: widget.ticket.ticketId,
             ),
+          ),
+        );
+      },
+      child: const Text("See More"),
+    ),
+  ],
+),
             const SizedBox(height: 8),
             // START OF HORIZONTAL SCROLL REVIEW WIDGET
             if (isLoadingReviews)
@@ -277,14 +291,15 @@ class _DestinationDetailPageState extends State<DestinationDetailPage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => MapPage(
-                            locLang: LatLng(
-                                widget.ticket.latitude, widget.ticket.longitude),
+                            locLang: LatLng(widget.ticket.latitude,
+                                widget.ticket.longitude),
                           ),
                         ),
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF1F509A), width: 2.0),
+                      side: const BorderSide(
+                          color: Color(0xFF1F509A), width: 2.0),
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF1F509A),
                     ),

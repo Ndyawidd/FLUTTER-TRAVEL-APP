@@ -19,6 +19,7 @@ class _BookingPageState extends State<BookingPage> {
   Ticket? ticket;
   int quantity = 1;
   String selectedDate = "";
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -27,15 +28,26 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Future<void> fetchTicket() async {
+    setState(() {
+      isLoading = true; // Set loading to true when fetching
+    });
     final fetchedTicket = await TicketService.fetchTicketById(widget.ticketId);
     setState(() {
       ticket = fetchedTicket;
+      isLoading = false;
     });
   }
 
   void increaseQuantity() {
     setState(() {
-      quantity++;
+      if (ticket != null && quantity < ticket!.capacity) {
+        quantity++;
+      } else if (ticket != null && quantity >= ticket!.capacity) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text("Cannot book more than available capacity.")),
+        );
+      }
     });
   }
 
@@ -72,25 +84,68 @@ class _BookingPageState extends State<BookingPage> {
       return;
     }
 
-    if (ticket != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PaymentPage(
-            ticketId: ticket!.ticketId,
-            date: selectedDate,
-            quantity: quantity,
-          ),
-        ),
+    if (ticket == null) {
+      //
+      ScaffoldMessenger.of(context).showSnackBar(
+        //
+        const SnackBar(content: Text("Ticket data not loaded yet.")), //
       );
+      return; //
     }
+
+    // Capacity check before proceeding to payment
+    if (quantity > ticket!.capacity) {
+      //
+      ScaffoldMessenger.of(context).showSnackBar(
+        //
+        SnackBar(
+            content: Text(
+                "Requested quantity ($quantity) exceeds available capacity (${ticket!.capacity}).")), //
+      );
+      return; //
+    }
+
+    Navigator.push(
+      //
+      context, //
+      MaterialPageRoute(
+        //
+        builder: (context) => PaymentPage(
+          //
+          ticketId: ticket!.ticketId, //
+          date: selectedDate, //
+          quantity: quantity, //
+          currentCapacity: ticket!.capacity,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (ticket == null) {
+    if (isLoading) {
+      // Show loading indicator while fetching ticket data
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator()), //
+      );
+    }
+
+    if (ticket == null) {
+      // Handle case where ticket data couldn't be loaded
+      return Scaffold(
+        //
+        appBar: AppBar(
+          //
+          title: const Text("Booking Details"), //
+          backgroundColor: Colors.white, //
+          foregroundColor: Colors.black, //
+          centerTitle: true, //
+          elevation: 0, //
+        ),
+        body: const Center(
+          //
+          child: Text("Failed to load ticket details."), //
+        ),
       );
     }
 
@@ -135,13 +190,21 @@ class _BookingPageState extends State<BookingPage> {
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
                     IconButton(
-                      onPressed: increaseQuantity,
-                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: quantity < ticket!.capacity
+                          ? increaseQuantity
+                          : null, //
+                      icon: Icon(Icons.add_circle_outline,
+                          color: quantity < ticket!.capacity
+                              ? null
+                              : Colors.grey), //
                     ),
                   ],
                 )
               ],
             ),
+            const SizedBox(height: 16),
+            buildRowWithIcon("Available Capacity", ticket!.capacity.toString(),
+                Icons.people), // Display current capacity
             const SizedBox(height: 16),
             Text("Total Price", style: TextStyle(fontWeight: FontWeight.bold)),
             Text("Rp ${NumberFormat('#,##0', 'id_ID').format(totalPrice)}",

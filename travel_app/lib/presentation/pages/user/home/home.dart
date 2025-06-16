@@ -7,10 +7,13 @@ import '../wishlist/wishlist.dart';
 import '../history/history.dart';
 import '../profile/profile.dart';
 import 'destination_detail_page.dart';
+import 'package:intl/intl.dart';
 import 'package:travel_app/services/ticket_service.dart';
 import 'package:travel_app/services/wishlist_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:travel_app/services/review_service.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:async';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -74,6 +77,8 @@ class _HomeContentState extends State<HomeContent> {
   String _userName = '';
 
   Set<int> _wishlistIds = {};
+  Map<int, double> _ticketRatings = {};
+  Map<int, int> _ticketReviewCounts = {};
 
   @override
   void initState() {
@@ -128,6 +133,32 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
+  Future<void> loadTicketRatings() async {
+    Map<int, double> ratings = {};
+    Map<int, int> reviewCounts = {};
+
+    for (Ticket ticket in _tickets) {
+      try {
+        double avgRating =
+            await ReviewService.getAverageRating(ticket.ticketId);
+        final reviews =
+            await ReviewService.getReviewsByTicketId(ticket.ticketId);
+
+        ratings[ticket.ticketId] = avgRating;
+        reviewCounts[ticket.ticketId] = reviews.length;
+      } catch (e) {
+        print("Error loading rating for ticket ${ticket.ticketId}: $e");
+        ratings[ticket.ticketId] = 0.0;
+        reviewCounts[ticket.ticketId] = 0;
+      }
+    }
+
+    setState(() {
+      _ticketRatings = ratings;
+      _ticketReviewCounts = reviewCounts;
+    });
+  }
+
   Future<void> loadTickets() async {
     setState(() {
       _isLoading = true;
@@ -139,7 +170,7 @@ class _HomeContentState extends State<HomeContent> {
       _isLoading = false;
     });
 
-    // Apply current sorting after loading tickets
+    await loadTicketRatings();
     applySorting(_selectedSort);
   }
 
@@ -199,24 +230,24 @@ class _HomeContentState extends State<HomeContent> {
           _sortedTickets = tickets;
           break;
 
-        case "Price":
-          // Sort by rating (tertinggi dulu)
+        case "Top Rated":
           tickets.sort((a, b) {
-            // Jika ada field rating di model Ticket
-            // return b.rating.compareTo(a.rating);
+            double ratingA = _ticketRatings[a.ticketId] ?? 0.0;
+            double ratingB = _ticketRatings[b.ticketId] ?? 0.0;
 
-            // Untuk sementara, karena rating belum ada di model,
-            // kita bisa sort berdasarkan price (asumsi harga tinggi = rating tinggi)
-            // atau random sort untuk demo
-            return b.price.compareTo(a.price);
+            int result = ratingB.compareTo(ratingA);
+
+            // Jika rating sama, sort berdasarkan nama
+            if (result == 0) {
+              return a.name.compareTo(b.name);
+            }
+
+            return result;
           });
           _sortedTickets = tickets;
           break;
 
         case "Near You":
-          // Sort by distance (jika ada koordinat)
-          // Untuk sementara, sama dengan Popular
-
           _sortByDistance(tickets);
           break;
 
@@ -224,7 +255,6 @@ class _HomeContentState extends State<HomeContent> {
           _sortedTickets = tickets;
       }
 
-      // Apply search filter if there's a search query
       if (_searchQuery.isNotEmpty) {
         applySearchFilter(_searchQuery);
       }
@@ -233,62 +263,152 @@ class _HomeContentState extends State<HomeContent> {
 
   void _sortByDistance(List<Ticket> tickets) async {
     try {
-      // Pastikan izin lokasi aktif
+      // 1. Cek apakah location service aktif
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Layanan lokasi tidak aktif.")),
+          const SnackBar(
+            content: Text(
+                "Layanan lokasi tidak aktif. Silakan aktifkan GPS di pengaturan."),
+            duration: Duration(seconds: 3),
+          ),
         );
         return;
       }
 
+      // 2. Cek dan request permission dengan handling yang lebih baik
       LocationPermission permission = await Geolocator.checkPermission();
+
       if (permission == LocationPermission.denied) {
+        // Request permission pertama kali
         permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.deniedForever) {
+
+        if (permission == LocationPermission.denied) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text("Izin lokasi ditolak secara permanen.")),
+              content:
+                  Text("Izin akses lokasi diperlukan untuk fitur 'Near You'."),
+              duration: Duration(seconds: 3),
+            ),
           );
           return;
         }
       }
 
-      // Ambil posisi pengguna
+      if (permission == LocationPermission.deniedForever) {
+        // Permission ditolak permanen, arahkan ke settings
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                "Izin lokasi ditolak permanen. Silakan aktifkan di pengaturan aplikasi."),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Pengaturan',
+              onPressed: () async {
+                await Geolocator.openAppSettings();
+              },
+            ),
+          ),
+        );
+        return;
+      }
+
+      // 3. Tampilkan loading indicator
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text("Mengambil lokasi Anda..."),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // 4. Ambil posisi dengan timeout
       final Position userPosition = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15), // Timeout 15 detik
+      );
 
-      // Hitung jarak untuk setiap tiket dan urutkan
-      tickets.sort((a, b) {
-        final double distanceA = Geolocator.distanceBetween(
+      print(
+          "User position: ${userPosition.latitude}, ${userPosition.longitude}");
+
+      // 5. Hitung jarak dan urutkan
+      List<TicketWithDistance> ticketsWithDistance = tickets.map((ticket) {
+        final double distance = Geolocator.distanceBetween(
           userPosition.latitude,
           userPosition.longitude,
-          a.latitude,
-          a.longitude,
+          ticket.latitude,
+          ticket.longitude,
         );
 
-        final double distanceB = Geolocator.distanceBetween(
-          userPosition.latitude,
-          userPosition.longitude,
-          b.latitude,
-          b.longitude,
-        );
+        return TicketWithDistance(ticket: ticket, distance: distance);
+      }).toList();
 
-        return distanceA.compareTo(distanceB); // ascending
-      });
+      // Sort berdasarkan jarak (ascending)
+      ticketsWithDistance.sort((a, b) => a.distance.compareTo(b.distance));
+
+      // Extract tickets yang sudah diurutkan
+      List<Ticket> sortedTickets =
+          ticketsWithDistance.map((item) => item.ticket).toList();
 
       setState(() {
-        _sortedTickets = tickets;
+        _sortedTickets = sortedTickets;
       });
 
-      // Kalau ada query pencarian, filter ulang
+      // 6. Tampilkan feedback sukses
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text("Menampilkan ${sortedTickets.length} destinasi terdekat"),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // 7. Apply search filter jika ada
       if (_searchQuery.isNotEmpty) {
         applySearchFilter(_searchQuery);
       }
-    } catch (e) {
-      print("Gagal sort berdasarkan lokasi: $e");
+    } on LocationServiceDisabledException {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal menentukan lokasi.")),
+        const SnackBar(
+          content: Text("Layanan lokasi dinonaktifkan. Silakan aktifkan GPS."),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } on PermissionDeniedException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Izin akses lokasi ditolak."),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } on TimeoutException {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Timeout saat mengambil lokasi. Coba lagi."),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      print("Error saat sort berdasarkan lokasi: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Gagal mengambil lokasi: ${e.toString()}"),
+          duration: const Duration(seconds: 3),
+        ),
       );
     }
   }
@@ -429,13 +549,19 @@ class _HomeContentState extends State<HomeContent> {
                                   );
                                 },
                                 child: DestinationCard(
+                                  ticketId: ticket.ticketId,
                                   title: ticket.name,
                                   location: ticket.location,
-                                  price: 'Rp ${ticket.price}',
-                                  rating: 4.5,
+                                  price:
+                                      'Rp ${NumberFormat('#,##0', 'id_ID').format(ticket.price)}',
                                   imageUrl: ticket.image,
                                   isWishlisted:
                                       _wishlistIds.contains(ticket.ticketId),
+                                  // Pass rating data dari parent ke child
+                                  averageRating:
+                                      _ticketRatings[ticket.ticketId] ?? 0.0,
+                                  reviewCount:
+                                      _ticketReviewCounts[ticket.ticketId] ?? 0,
                                   onTap: () {
                                     Navigator.push(
                                       context,
@@ -467,12 +593,20 @@ class _HomeContentState extends State<HomeContent> {
         return Icons.trending_up;
       case "New":
         return Icons.new_releases;
-      case "Price":
-        return Icons.price_change;
+      case "Top Rated":
+        return Icons.star;
       case "Near You":
         return Icons.location_on;
       default:
         return Icons.explore;
     }
   }
+}
+
+// Helper class untuk menyimpan ticket dengan jarak
+class TicketWithDistance {
+  final Ticket ticket;
+  final double distance;
+
+  TicketWithDistance({required this.ticket, required this.distance});
 }

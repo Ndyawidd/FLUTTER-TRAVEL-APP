@@ -65,7 +65,6 @@ class Ticket {
 class TicketService {
   static final String _apiUrl = dotenv.env['API_URL'] ?? '';
 
-  /// Fetch all tickets from the backend
   static Future<List<Ticket>> fetchTickets() async {
     try {
       final response = await http.get(Uri.parse('$_apiUrl/tickets'));
@@ -112,6 +111,32 @@ class TicketService {
     } catch (err) {
       print('createTicket error: $err');
       return null;
+    }
+  }
+
+  //edit ticket
+  static Future<bool> updateTicketCapacity(
+      int ticketId, int newCapacity) async {
+    try {
+      final response = await http.patch(
+        Uri.parse(
+            '$_apiUrl/tickets/$ticketId/capacity'), // <--- CHANGE THE URL HERE
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'capacity': newCapacity}), // Only send the capacity
+      );
+
+      if (response.statusCode == 200) {
+        print(
+            'Ticket $ticketId capacity updated to $newCapacity successfully.');
+        return true;
+      } else {
+        print(
+            'Failed to update ticket $ticketId capacity. Status code: ${response.statusCode}, Body: ${response.body}');
+        return false;
+      }
+    } catch (err) {
+      print('updateTicketCapacity error (ID: $ticketId): $err');
+      return false;
     }
   }
 
