@@ -209,7 +209,9 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
   Future<void> _fetchReviews() async {
     setState(() => isLoading = true);
     try {
-      final fetchedReviews = await ReviewService.getReviewsByTicketId(widget.ticketId);
+      final fetchedReviews =
+          await ReviewService.getReviewsByTicketId(widget.ticketId);
+
       final adjustedReviews = fetchedReviews.map((review) {
         if (review.image != null &&
             review.image!.isNotEmpty &&
@@ -291,59 +293,36 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
         ],
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: User, Rating, Date
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    review.userName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  "${_getStarDisplay(review.rating)} ${review.rating}/5 - ${review.userName}",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  _formatDate(review.createdAt),
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Text(
-                  _getStarDisplay(review.rating),
-                  style: const TextStyle(fontSize: 16),
-                ),
-                const SizedBox(width: 8),
-                Text("${review.rating}/5", style: const TextStyle(fontSize: 13, color: Colors.grey)),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            // Comment
-            Text(
-              review.comment,
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 10),
-
-            // Gambar
-            if (review.image != null && review.image!.isNotEmpty)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _buildReviewImage(review.image),
               ),
-          ],
-        ),
+              Text(
+                _formatDate(review.createdAt),
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            review.comment,
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          if (review.image != null && review.image!.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: _buildReviewImage(review.image),
+            ),
+        ],
       ),
     );
   }
@@ -353,9 +332,13 @@ class _ReviewsListPageState extends State<ReviewsListPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F9FC),
       appBar: AppBar(
-        title: const Text("Review Pengguna"),
+        title: const Text("Semua Review",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            )),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: Color(0xFF154BCB),
         centerTitle: true,
         elevation: 0.5,
       ),

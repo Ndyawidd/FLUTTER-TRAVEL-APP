@@ -16,6 +16,19 @@ class WishlistService {
     }
   }
 
+  // New method to get wishlist count for a specific ticket
+  static Future<int> getWishlistCount(int ticketId) async {
+    final url = Uri.parse('$_apiUrl/wishlists/ticket/$ticketId/count');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['count'] ?? 0;
+    } else {
+      throw Exception("Failed to fetch wishlist count");
+    }
+  }
+
   static Future<void> addToWishlist(int userId, int ticketId) async {
     final url = Uri.parse('$_apiUrl/wishlists');
 
@@ -76,6 +89,4 @@ class WishlistService {
     }
     throw Exception("Failed to remove from wishlist");
   }
-
-  
 }
